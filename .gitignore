@@ -1,0 +1,23 @@
+# colcon workspace
+/build
+/install
+/log
+
+# Python bytecode and test caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Experiment results (CSV, plots, logs), written by run_experiments.sh and the Docker services
+/results
+/docker/kit/results
+
+# Student kit made by docker/make_kit.sh
+/docker/dist
+
+# LaTeX build files (the PDF is kept)
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+docs/**/*.log
