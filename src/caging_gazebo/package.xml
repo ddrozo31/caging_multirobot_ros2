@@ -11,6 +11,10 @@
   <exec_depend>caging_description</exec_depend>  <!-- the robot model -->
   <exec_depend>ros_gz_sim</exec_depend>          <!-- starts Gazebo and spawns models -->
   <exec_depend>ros_gz_bridge</exec_depend>       <!-- ROS 2 <-> Gazebo topic bridge -->
+  <exec_depend>gz_ros2_control</exec_depend>     <!-- ros2_control inside Gazebo -->
+  <exec_depend>controller_manager</exec_depend>  <!-- "spawner" to start controllers -->
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>caging_mecanum_controller</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 

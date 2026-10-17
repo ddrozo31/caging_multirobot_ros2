@@ -1,0 +1,17 @@
+<!--
+  Plugin description: tells pluginlib which class is inside our library.
+
+  name            : the name used in the controllers YAML file ("type: ...")
+  type            : the C++ class (namespace::ClassName)
+  base_class_type : the interface it implements
+-->
+<library path="caging_mecanum_controller">
+  <class name="caging_mecanum_controller/MecanumController"
+         type="caging_mecanum_controller::MecanumController"
+         base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Mecanum controller: body twist to 4 wheel speeds (inverse Eq. 1) and
+      measured wheel speeds to body twist (forward Eq. 1).
+    </description>
+  </class>
+</library>

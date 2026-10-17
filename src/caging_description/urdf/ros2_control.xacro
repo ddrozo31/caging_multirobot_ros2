@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!--
+  ros2_control description of the robot.
+
+  ros2_control separates:
+    - HARDWARE  : something that moves the joints (here: Gazebo, through gz_ros2_control)
+    - CONTROLLERS: algorithms that read/write the joints (here: our MecanumController
+                   and the joint_state_broadcaster)
+
+  For every joint we list:
+    - command_interface : what a controller can WRITE (wheel velocity)
+    - state_interface   : what a controller can READ  (wheel position and velocity)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <ros2_control name="GazeboSimSystem" type="system">
+
+        <!-- The "hardware" is the Gazebo simulation -->
+        <hardware>
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+
+        <!-- One block per wheel joint (macro used 4 times) -->
+        <xacro:macro name="wheel_interfaces" params="index">
+            <joint name="wheel_${index}_joint">
+                <command_interface name="velocity"/>   <!-- rad/s -->
+                <state_interface name="position"/>     <!-- rad   -->
+                <state_interface name="velocity"/>     <!-- rad/s -->
+            </joint>
+        </xacro:macro>
+
+        <xacro:wheel_interfaces index="0"/>
+        <xacro:wheel_interfaces index="1"/>
+        <xacro:wheel_interfaces index="2"/>
+        <xacro:wheel_interfaces index="3"/>
+
+    </ros2_control>
+
+</robot>

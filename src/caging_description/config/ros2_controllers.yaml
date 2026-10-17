@@ -1,0 +1,27 @@
+# ros2_control configuration: which controllers exist and their parameters.
+# Loaded by the gz_ros2_control plugin (see urdf/gazebo.xacro).
+
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz: how many times per second update() of each controller runs
+
+    # Publishes /joint_states (wheel angles) -> robot_state_publisher -> TF of the wheels
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    # Our controller (package caging_mecanum_controller)
+    mecanum_controller:
+      type: caging_mecanum_controller/MecanumController
+
+mecanum_controller:
+  ros__parameters:
+    # Order = wheel index i of Eq. 1 (Fig. 6): front-left, front-right, rear-left, rear-right
+    wheel_joints:
+      - wheel_0_joint
+      - wheel_1_joint
+      - wheel_2_joint
+      - wheel_3_joint
+    # Same values as urdf/robot_core.xacro (see docs/paper_reference.md, section 8)
+    wheel_radius: 0.0325  # r_w [m]
+    lx: 0.080             # l_x [m]
+    ly: 0.0845            # l_y [m]

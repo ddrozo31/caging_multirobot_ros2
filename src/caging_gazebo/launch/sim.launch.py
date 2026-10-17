@@ -7,6 +7,11 @@ Starts:
   3. ros_gz_sim "create"   -> reads /robot_description and spawns the robot
   4. ros_gz_bridge         -> copies topics between Gazebo and ROS 2
                               (list of topics in config/topic_bridge.yaml)
+  5. controller spawners   -> start joint_state_broadcaster and mecanum_controller
+
+Drive the robot (body twist in the robot frame):
+  ros2 topic pub -r 10 /mecanum_controller/cmd_vel geometry_msgs/msg/Twist \
+    "{linear: {x: 0.2, y: 0.0}, angular: {z: 0.0}}"
 
 Run:
   ros2 launch caging_gazebo sim.launch.py
@@ -74,6 +79,22 @@ def generate_launch_description():
         }],
     )
 
+    # --- 5. Start the controllers ---
+    # gz_ros2_control runs a controller_manager inside Gazebo. The "spawner"
+    # waits for it, then loads, configures and activates each controller.
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        output='screen',
+        arguments=['joint_state_broadcaster'],
+    )
+    mecanum_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        output='screen',
+        arguments=['mecanum_controller'],
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'world',
@@ -83,4 +104,6 @@ def generate_launch_description():
         rsp,
         spawn,
         bridge,
+        joint_state_broadcaster_spawner,
+        mecanum_controller_spawner,
     ])

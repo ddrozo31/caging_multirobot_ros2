@@ -21,3 +21,11 @@
   ros_type_name: "rosgraph_msgs/msg/Clock"
   gz_type_name: "gz.msgs.Clock"
   direction: GZ_TO_ROS
+
+# Body twist computed by the MecanumController (forward Eq. 1) -> Gazebo
+# VelocityControl system, which moves the chassis of the robot (Step 2)
+- ros_topic_name: "/mecanum_controller/body_twist"
+  gz_topic_name: "/model/rosmaster_x3/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ

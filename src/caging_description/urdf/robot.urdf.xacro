@@ -9,6 +9,7 @@
 
     <xacro:include filename="properties.xacro"/>   <!-- colors (materials) -->
     <xacro:include filename="robot_core.xacro"/>   <!-- links and joints of the robot -->
-    <xacro:include filename="gazebo.xacro"/>       <!-- Gazebo-only settings (friction, ...) -->
+    <xacro:include filename="ros2_control.xacro"/> <!-- joint interfaces for ros2_control -->
+    <xacro:include filename="gazebo.xacro"/>       <!-- Gazebo-only settings (friction, plugins) -->
 
 </robot>

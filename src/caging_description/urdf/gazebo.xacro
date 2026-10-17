@@ -32,4 +32,26 @@
     <xacro:wheel_friction index="2"/>
     <xacro:wheel_friction index="3"/>
 
+    <!--
+      gz_ros2_control: connects ros2_control with Gazebo.
+      It starts a controller_manager inside Gazebo and loads the controllers
+      listed in config/ros2_controllers.yaml.
+    -->
+    <gazebo>
+        <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+            <parameters>$(find caging_description)/config/ros2_controllers.yaml</parameters>
+        </plugin>
+    </gazebo>
+
+    <!--
+      VelocityControl: moves the whole robot with a body twist (vx, vy, wz),
+      expressed in the robot frame (base_link).
+      It listens on the Gazebo topic /model/<model name>/cmd_vel.
+      Our MecanumController computes that twist from the wheel speeds (forward Eq. 1)
+      and the bridge (caging_gazebo/config/topic_bridge.yaml) sends it here.
+    -->
+    <gazebo>
+        <plugin filename="gz-sim-velocity-control-system" name="gz::sim::systems::VelocityControl"/>
+    </gazebo>
+
 </robot>

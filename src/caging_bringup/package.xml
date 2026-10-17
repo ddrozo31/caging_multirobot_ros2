@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>caging_bringup</name>
+  <version>0.0.1</version>
+  <description>Launch files and parameters that tie the caging workshop together.</description>
+  <maintainer email="david.rozo31@eia.edu.co">David Rozo-Osorio</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Packages needed at run time by our launch files -->
+  <exec_depend>joy</exec_depend>                    <!-- reads the joystick -->
+  <exec_depend>teleop_twist_joy</exec_depend>       <!-- joystick buttons/axes -> Twist -->
+  <exec_depend>teleop_twist_keyboard</exec_depend>  <!-- keyboard -> Twist -->
+  <exec_depend>twist_mux</exec_depend>              <!-- selects one Twist source by priority -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

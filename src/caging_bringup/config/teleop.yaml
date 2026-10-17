@@ -1,0 +1,61 @@
+# Teleoperation: joystick + keyboard + (later) automatic controllers -> one command.
+#
+#   joystick -> joy_node -> teleop_node -> /cmd_vel_joy ─┐
+#   keyboard -> teleop_twist_keyboard   -> /cmd_vel_key ─┼─> twist_mux -> /mecanum_controller/cmd_vel
+#   LQR / state machine (later steps)   -> /cmd_vel_nav ─┘
+#
+# All messages are geometry_msgs/msg/Twist (NOT TwistStamped), because our
+# MecanumController subscribes to Twist.
+
+# --- Reads the joystick and publishes /joy (sensor_msgs/msg/Joy) ---
+joy_node:
+  ros__parameters:
+    device_id: 0           # first joystick (/dev/input/js0)
+    deadzone: 0.05         # ignore tiny stick movements around the center
+    autorepeat_rate: 20.0  # Hz: re-publish /joy even if nothing changes
+
+# --- Converts /joy into a Twist for a MECANUM robot ---
+# Axis numbers depend on the controller: check them with  ros2 topic echo /joy
+teleop_node:
+  ros__parameters:
+    axis_linear:
+      x: 1     # left stick, up/down     -> forward / backward   (x_dot_R)
+      y: 0     # left stick, left/right  -> sideways             (y_dot_R)  <- mecanum only!
+    scale_linear:
+      x: 0.5   # m/s at full stick
+      y: 0.5
+    scale_linear_turbo:
+      x: 1.0   # m/s at full stick while holding the turbo button
+      y: 1.0
+
+    axis_angular:
+      yaw: 3   # right stick, left/right -> rotation (theta_dot). 2 on Logitech, 3 on Sony
+    scale_angular:
+      yaw: 1.5 # rad/s at full stick
+    scale_angular_turbo:
+      yaw: 3.0
+
+    enable_button: 4          # hold this button (L1 / LB) to move: a "dead man's switch"
+    enable_turbo_button: 5    # hold this button (R1 / RB) for turbo speed
+    require_enable_button: true
+    publish_stamped_twist: false   # Twist, not TwistStamped
+
+# --- Chooses ONE command among several sources ---
+# The source with the highest priority wins. A source that has not published
+# for "timeout" seconds is ignored, so a lower-priority source can take over.
+twist_mux:
+  ros__parameters:
+    use_stamped: false   # Twist, not TwistStamped
+    topics:
+      navigation:              # automatic controllers (LQR, Leader-Follower, ...)
+        topic   : cmd_vel_nav
+        timeout : 0.5
+        priority: 10
+      keyboard:
+        topic   : cmd_vel_key
+        timeout : 0.5
+        priority: 50
+      joystick:                # the human with the joystick always wins
+        topic   : cmd_vel_joy
+        timeout : 0.5
+        priority: 100

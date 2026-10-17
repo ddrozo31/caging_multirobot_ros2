@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 1
+# caging_multirobot_ros2: the project after Step 2
 
-This commit (tag `step-01`) is the project as it was at the end of
-**Step 1: ROSMASTER X3 model and Gazebo Harmonic spawn**. The guides are their final version; the code in `src/` is the
+This commit (tag `step-02`) is the project as it was at the end of
+**Step 2: mecanum ros2_control controller and teleoperation**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -11,6 +11,8 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 
 - [Step 0 — Workspace Setup](docs/steps/step_00_workspace_setup.md)
 - [Step 1 — Robot Model in Gazebo Harmonic](docs/steps/step_01_robot_model.md)
+- [Step 2 (companion) — Inside the Mecanum Controller](docs/steps/step_02_controller_walkthrough.md)
+- [Step 2 — Mecanum Kinematics: a Custom ros2_control Controller](docs/steps/step_02_mecanum_controller.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 
