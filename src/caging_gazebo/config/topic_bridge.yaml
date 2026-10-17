@@ -1,0 +1,23 @@
+# ROS 2 <-> Gazebo topic bridge (ros_gz_bridge / parameter_bridge).
+#
+# ROS 2 and Gazebo use DIFFERENT message systems. The bridge copies messages
+# from one side to the other. Every topic that must cross over is listed here.
+#
+# Fields of each entry:
+#   ros_topic_name : topic name on the ROS 2 side
+#   gz_topic_name  : topic name on the Gazebo side   (list Gazebo topics: gz topic -l)
+#   ros_type_name  : ROS 2 message type               (e.g. geometry_msgs/msg/Twist)
+#   gz_type_name   : Gazebo message type              (e.g. gz.msgs.Twist)
+#   direction      : GZ_TO_ROS     Gazebo -> ROS 2   (sensors, clock, poses)
+#                    ROS_TO_GZ     ROS 2 -> Gazebo   (commands)
+#                    BIDIRECTIONAL both ways
+#
+# Tip: start topic names with "/" (absolute). Relative names get the node
+# namespace added, e.g. "clock" would become "/leader/clock".
+
+# Simulation clock: every node with use_sim_time = true reads /clock
+- ros_topic_name: "/clock"
+  gz_topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS

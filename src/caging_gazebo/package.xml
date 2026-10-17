@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>caging_gazebo</name>
+  <version>0.0.1</version>
+  <description>Gazebo Harmonic worlds and launch files for the caging workshop.</description>
+  <maintainer email="david.rozo31@eia.edu.co">David Rozo-Osorio</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Packages needed at run time by our launch files -->
+  <exec_depend>caging_description</exec_depend>  <!-- the robot model -->
+  <exec_depend>ros_gz_sim</exec_depend>          <!-- starts Gazebo and spawns models -->
+  <exec_depend>ros_gz_bridge</exec_depend>       <!-- ROS 2 <-> Gazebo topic bridge -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

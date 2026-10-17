@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+  Gazebo-only settings.
+
+  URDF does not know about friction, so Gazebo settings go inside
+  <gazebo reference="link_name"> ... </gazebo> blocks. ROS ignores them;
+  Gazebo reads them when it converts the URDF into SDF.
+
+  Common mistake: writing <surface><friction>... inside a URDF <collision>.
+  That is SDF syntax, not URDF: the URDF parser silently drops it and the
+  link keeps the default friction.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!--
+      Wheel friction = 0 (mu1 = mu2 = 0).
+
+      Our wheels are plain cylinders (no rollers), so they cannot push the robot
+      sideways. Instead, they only carry the weight of the robot, and the motion
+      of the chassis will be produced by the kinematic model (Eq. 1) in Step 2.
+      Zero friction makes sure the wheels never fight against that motion.
+    -->
+    <xacro:macro name="wheel_friction" params="index">
+        <gazebo reference="wheel_${index}_link">
+            <mu1>0.0</mu1>   <!-- friction along the main direction -->
+            <mu2>0.0</mu2>   <!-- friction along the second direction -->
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:wheel_friction index="0"/>
+    <xacro:wheel_friction index="1"/>
+    <xacro:wheel_friction index="2"/>
+    <xacro:wheel_friction index="3"/>
+
+</robot>

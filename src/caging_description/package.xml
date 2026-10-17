@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>caging_description</name>
+  <version>0.0.1</version>
+  <description>Robot model (URDF/xacro) of the Yahboom ROSMASTER X3 used in the caging workshop.</description>
+  <maintainer email="david.rozo31@eia.edu.co">David Rozo-Osorio</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Packages needed at run time by our launch files -->
+  <exec_depend>xacro</exec_depend>                      <!-- xacro -> URDF -->
+  <exec_depend>robot_state_publisher</exec_depend>      <!-- publishes the TF tree of the robot -->
+  <exec_depend>joint_state_publisher_gui</exec_depend>  <!-- sliders to move the wheels in RViz -->
+  <exec_depend>rviz2</exec_depend>                      <!-- 3D visualization -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

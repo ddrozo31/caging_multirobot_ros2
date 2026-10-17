@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<!--
+  Yahboom ROSMASTER X3 built from simple shapes (boxes and cylinders).
+
+  Dimensions come from docs/figures/rosmaster_x3_dimensions.png
+  (see docs/paper_reference.md, section 8).
+
+  Frames (seen from above):
+
+            +X (forward)
+              ^
+     wheel_0  |  wheel_1          wheel numbering = Fig. 6 of the paper
+       (FL)   |   (FR)            0 = front-left,  1 = front-right
+              |                   2 = rear-left,   3 = rear-right
+   +Y <=======o base_link
+              |
+     wheel_2  |  wheel_3
+       (RL)   |   (RR)
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- Inertia formulas for box, cylinder and sphere -->
+    <xacro:include filename="inertial_macros.xacro"/>
+
+    <!-- ============================================================ -->
+    <!--  Parameters (meters, kilograms)                               -->
+    <!-- ============================================================ -->
+
+    <!-- Wheels: diameter 65 mm, width 30.4 mm -->
+    <xacro:property name="wheel_radius" value="0.0325"/>   <!-- r_w in Eq. 1 -->
+    <xacro:property name="wheel_width"  value="0.0304"/>
+    <xacro:property name="wheel_mass"   value="0.1"/>      <!-- approximate -->
+
+    <!-- Wheel positions measured from the robot center -->
+    <xacro:property name="lx" value="0.080"/>    <!-- l_x in Eq. 1: half of the 160 mm wheelbase -->
+    <xacro:property name="ly" value="0.0845"/>   <!-- l_y in Eq. 1: (199.4 - 30.4) / 2 mm -->
+
+    <!-- Chassis: one box that represents the whole body of the robot -->
+    <xacro:property name="chassis_length" value="0.238"/>
+    <xacro:property name="chassis_width"  value="0.12"/>   <!-- fits between the wheels (138.6 mm gap) -->
+    <xacro:property name="chassis_height" value="0.06"/>
+    <xacro:property name="chassis_z"      value="0.06"/>   <!-- height of the box center above the ground -->
+    <xacro:property name="chassis_mass"   value="2.0"/>    <!-- approximate -->
+
+    <!-- ============================================================ -->
+    <!--  base_link: the reference frame of the robot                  -->
+    <!-- ============================================================ -->
+    <!--
+      base_link is placed ON THE GROUND, at the center of the four wheels.
+      This is the frame {R} of the paper: its x-y position and yaw angle are
+      the robot pose q = [x, y, theta] used by all the controllers.
+      It has no shape and no mass: it is only a reference frame.
+    -->
+    <link name="base_link"/>
+
+    <!-- ============================================================ -->
+    <!--  Chassis                                                      -->
+    <!-- ============================================================ -->
+    <joint name="chassis_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="chassis_link"/>
+        <origin xyz="0 0 ${chassis_z}" rpy="0 0 0"/>
+    </joint>
+
+    <link name="chassis_link">
+        <!-- Main body -->
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
+            <material name="white"/>
+        </visual>
+        <!-- Red marker on the front, so we can see where the robot is looking (+X) -->
+        <visual>
+            <origin xyz="${chassis_length/2 - 0.02} 0 ${chassis_height/2 + 0.005}" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.04 0.04 0.01"/>
+            </geometry>
+            <material name="red"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
+        </collision>
+        <xacro:inertial_box mass="${chassis_mass}" x="${chassis_length}" y="${chassis_width}" z="${chassis_height}">
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </xacro:inertial_box>
+    </link>
+
+    <!-- ============================================================ -->
+    <!--  Wheels                                                       -->
+    <!-- ============================================================ -->
+    <!--
+      A xacro macro is a "function" that writes XML for us.
+      We define one wheel here and call it four times below.
+
+      Parameters:
+        index : wheel number i of Eq. 1 (0, 1, 2, 3)
+        x, y  : position of the wheel center from base_link
+
+      The wheels are plain cylinders: the mecanum rollers are NOT modelled.
+      The omnidirectional motion will come from the kinematic model (Eq. 1),
+      see Step 2.
+    -->
+    <xacro:macro name="mecanum_wheel" params="index x y">
+
+        <!--
+          rpy = (-pi/2, 0, 0) rotates the wheel frame so that its z axis
+          (the axis of the cylinder) points to +Y of the robot.
+          With axis = (0 0 1), a POSITIVE wheel speed moves the robot FORWARD,
+          for all four wheels. This matches row 1 of Eq. 1:
+            x_dot_R = r_w/4 * (theta_0 + theta_1 + theta_2 + theta_3)
+        -->
+        <joint name="wheel_${index}_joint" type="continuous">
+            <parent link="base_link"/>
+            <child link="wheel_${index}_link"/>
+            <origin xyz="${x} ${y} ${wheel_radius}" rpy="${-pi/2} 0 0"/>
+            <axis xyz="0 0 1"/>
+            <dynamics damping="0.01" friction="0.0"/>
+        </joint>
+
+        <link name="wheel_${index}_link">
+            <!-- The wheel -->
+            <visual>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+                <material name="black"/>
+            </visual>
+            <!-- A white stripe, so we can SEE the wheel spinning -->
+            <visual>
+                <origin xyz="${wheel_radius/2} 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="${wheel_radius} 0.008 ${wheel_width + 0.002}"/>
+                </geometry>
+                <material name="white"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+            </collision>
+            <xacro:inertial_cylinder mass="${wheel_mass}" length="${wheel_width}" radius="${wheel_radius}">
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+            </xacro:inertial_cylinder>
+        </link>
+
+    </xacro:macro>
+
+    <!-- The four wheels (numbering of Fig. 6) -->
+    <xacro:mecanum_wheel index="0" x="${ lx}" y="${ ly}"/>   <!-- front-left  -->
+    <xacro:mecanum_wheel index="1" x="${ lx}" y="${-ly}"/>   <!-- front-right -->
+    <xacro:mecanum_wheel index="2" x="${-lx}" y="${ ly}"/>   <!-- rear-left   -->
+    <xacro:mecanum_wheel index="3" x="${-lx}" y="${-ly}"/>   <!-- rear-right  -->
+
+</robot>
