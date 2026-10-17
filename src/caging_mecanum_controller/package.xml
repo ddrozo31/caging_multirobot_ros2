@@ -17,6 +17,8 @@
   <depend>rclcpp_lifecycle</depend>
   <depend>realtime_tools</depend>         <!-- thread-safe box and real-time publisher -->
   <depend>geometry_msgs</depend>          <!-- Twist message -->
+  <depend>nav_msgs</depend>               <!-- Odometry message (Step 3) -->
+  <depend>tf2_msgs</depend>               <!-- TF message (Step 3) -->
 
   <export>
     <build_type>ament_cmake</build_type>

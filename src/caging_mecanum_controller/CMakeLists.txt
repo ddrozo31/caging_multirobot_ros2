@@ -15,6 +15,8 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
 
 # --- Our controller is a SHARED library (a plugin), not an executable ---
 # The controller_manager loads it at run time using pluginlib.
@@ -34,6 +36,8 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp_lifecycle
   realtime_tools
   geometry_msgs
+  nav_msgs
+  tf2_msgs
 )
 
 # --- Register the plugin: tells pluginlib that our library contains
@@ -62,6 +66,8 @@ ament_export_dependencies(
   rclcpp_lifecycle
   realtime_tools
   geometry_msgs
+  nav_msgs
+  tf2_msgs
 )
 
 ament_package()

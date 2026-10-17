@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>caging_control</name>
+  <version>0.0.1</version>
+  <description>Algorithms of Tejada et al. (2025): pure math in core/, ROS 2 wrappers in nodes/.</description>
+  <maintainer email="david.rozo31@eia.edu.co">David Rozo-Osorio</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Packages needed at run time by our nodes -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <!-- Unit tests of core/ (see test/test_geometry.py for the command) -->
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

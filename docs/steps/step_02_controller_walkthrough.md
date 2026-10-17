@@ -436,7 +436,7 @@ We leave the wheels at zero.
 ### 6.5 `update` — the control loop
 
 Called every 10 ms. Five parts (Step 3 adds a sixth one, the wheel odometry — see
-[step_03_pose_feedback.md](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docs/steps/step_03_pose_feedback.md)):
+[step_03_pose_feedback.md](step_03_pose_feedback.md)):
 
 **1) Take the newest command**
 

@@ -12,6 +12,8 @@
   <exec_depend>teleop_twist_joy</exec_depend>       <!-- joystick buttons/axes -> Twist -->
   <exec_depend>teleop_twist_keyboard</exec_depend>  <!-- keyboard -> Twist -->
   <exec_depend>twist_mux</exec_depend>              <!-- selects one Twist source by priority -->
+  <exec_depend>caging_gazebo</exec_depend>          <!-- the simulation -->
+  <exec_depend>caging_control</exec_depend>         <!-- our algorithms (Python) -->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 

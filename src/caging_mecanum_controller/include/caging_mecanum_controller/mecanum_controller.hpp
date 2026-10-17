@@ -7,16 +7,24 @@
 //
 // In the simulation, ~/body_twist is sent to Gazebo (VelocityControl system),
 // which moves the chassis. See docs/steps/step_02_mecanum_controller.md.
+//
+// It also computes WHEEL ODOMETRY (Step 3): it integrates the forward-kinematics
+// twist over time (Eq. 3 + Eq. 5) and publishes ~/odom and the TF odom -> base_link.
+// Optional errors (noise, wrong wheel radius) can be added to the odometry ONLY,
+// to see how it drifts away from the ground truth. See docs/steps/step_03_pose_feedback.md.
 
 #ifndef CAGING_MECANUM_CONTROLLER__MECANUM_CONTROLLER_HPP_
 #define CAGING_MECANUM_CONTROLLER__MECANUM_CONTROLLER_HPP_
 
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 
 #include "controller_interface/controller_interface.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "tf2_msgs/msg/tf_message.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
 #include "realtime_tools/realtime_thread_safe_box.hpp"
@@ -64,6 +72,29 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr body_twist_pub_;
   // Real-time safe wrapper: update() never waits for the network.
   std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::msg::Twist>> rt_body_twist_pub_;
+
+  // ---- Wheel odometry (Step 3) ----
+  // Parameters
+  std::string odom_frame_;           // parent frame of the odometry ("odom")
+  std::string base_frame_;           // robot frame ("base_link")
+  bool publish_tf_ = true;           // publish the TF odom -> base_link?
+  double odom_noise_stddev_ = 0.0;   // random error added to each wheel speed [rad/s]
+  double odom_radius_scale_ = 1.0;   // systematic error: radius used by the odometry = scale * r_w
+
+  // Estimated pose of the robot in the odom frame
+  double odom_x_ = 0.0;
+  double odom_y_ = 0.0;
+  double odom_theta_ = 0.0;
+
+  // Random number generator for the noise (normal / Gaussian distribution)
+  std::mt19937 random_generator_;
+  std::normal_distribution<double> noise_;
+
+  // Publishers: ~/odom (nav_msgs/Odometry) and /tf (odom -> base_link)
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+  std::unique_ptr<realtime_tools::RealtimePublisher<nav_msgs::msg::Odometry>> rt_odom_pub_;
+  rclcpp::Publisher<tf2_msgs::msg::TFMessage>::SharedPtr tf_pub_;
+  std::unique_ptr<realtime_tools::RealtimePublisher<tf2_msgs::msg::TFMessage>> rt_tf_pub_;
 };
 
 }  // namespace caging_mecanum_controller

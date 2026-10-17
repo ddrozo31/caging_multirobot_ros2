@@ -25,3 +25,12 @@ mecanum_controller:
     wheel_radius: 0.0325  # r_w [m]
     lx: 0.080             # l_x [m]
     ly: 0.0845            # l_y [m]
+
+    # --- Wheel odometry (Step 3) ---
+    odom_frame: odom      # TF: odom -> base_link
+    base_frame: base_link
+    publish_tf: true
+    # Errors added ONLY to the odometry (the real motion of the robot is not affected).
+    # Start with 0.0 / 1.0 (perfect), then try e.g. 0.5 / 1.02 and watch it drift.
+    odom_noise_stddev: 0.0   # random noise on each measured wheel speed [rad/s]
+    odom_radius_scale: 1.0   # odometry uses r_w * scale (1.02 = thinks the wheel is 2 % bigger)

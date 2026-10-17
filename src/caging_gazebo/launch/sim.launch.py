@@ -8,6 +8,8 @@ Starts:
   4. ros_gz_bridge         -> copies topics between Gazebo and ROS 2
                               (list of topics in config/topic_bridge.yaml)
   5. controller spawners   -> start joint_state_broadcaster and mecanum_controller
+  6. static TF world -> odom (the odometry starts where the robot is spawned)
+  7. RViz (optional)       -> robot model (odometry) + ground truth
 
 Drive the robot (body twist in the robot frame):
   ros2 topic pub -r 10 /mecanum_controller/cmd_vel geometry_msgs/msg/Twist \
@@ -15,6 +17,8 @@ Drive the robot (body twist in the robot frame):
 
 Run:
   ros2 launch caging_gazebo sim.launch.py
+  ros2 launch caging_gazebo sim.launch.py x:=0.5 y:=-2.5 yaw:=1.5708   # initial pose
+  ros2 launch caging_gazebo sim.launch.py rviz:=false
   ros2 launch caging_gazebo sim.launch.py world:=/full/path/to/other_world.sdf
 """
 import os
@@ -22,6 +26,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -35,6 +40,10 @@ def generate_launch_description():
 
     # --- Launch arguments ---
     world = LaunchConfiguration('world')
+    x = LaunchConfiguration('x')       # initial pose of the robot in the world [m]
+    y = LaunchConfiguration('y')
+    yaw = LaunchConfiguration('yaw')   # [rad]
+    rviz = LaunchConfiguration('rviz')
 
     # --- 1. Gazebo ---
     # gz_args: -r = start running (not paused), -v 4 = verbose messages
@@ -64,7 +73,7 @@ def generate_launch_description():
         arguments=[
             '-name', 'rosmaster_x3',
             '-topic', 'robot_description',
-            '-x', '0.0', '-y', '0.0', '-z', '0.01',
+            '-x', x, '-y', y, '-z', '0.01', '-Y', yaw,
         ],
     )
 
@@ -95,15 +104,43 @@ def generate_launch_description():
         arguments=['mecanum_controller'],
     )
 
+    # --- 6. Static TF: world -> odom ---
+    # The wheel odometry starts at (0, 0, 0) in the "odom" frame. Placing "odom"
+    # at the spawn pose makes odometry and ground truth start at the same point.
+    world_to_odom = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        output='screen',
+        arguments=['--x', x, '--y', y, '--yaw', yaw,
+                   '--frame-id', 'world', '--child-frame-id', 'odom'],
+        parameters=[{'use_sim_time': True}],
+    )
+
+    # --- 7. RViz: fixed frame "world" ---
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        output='screen',
+        arguments=['-d', os.path.join(gazebo_share, 'rviz', 'sim.rviz')],
+        parameters=[{'use_sim_time': True}],
+        condition=IfCondition(rviz),   # only if rviz:=true
+    )
+
     return LaunchDescription([
         DeclareLaunchArgument(
             'world',
             default_value=os.path.join(gazebo_share, 'worlds', 'empty_world.sdf'),
             description='Full path to the world (SDF) file'),
+        DeclareLaunchArgument('x', default_value='0.0', description='Initial x [m]'),
+        DeclareLaunchArgument('y', default_value='0.0', description='Initial y [m]'),
+        DeclareLaunchArgument('yaw', default_value='0.0', description='Initial yaw [rad]'),
+        DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),
         gazebo,
         rsp,
         spawn,
         bridge,
         joint_state_broadcaster_spawner,
         mecanum_controller_spawner,
+        world_to_odom,
+        rviz_node,
     ])
