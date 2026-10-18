@@ -1,0 +1,21 @@
+# Object transport along the circle of §2.5 (Step 9, Eq. 26-27).
+/**/trajectory_tracker:
+  ros__parameters:
+    orientation: tangent     # static = experiment 1 (theta* = pi), tangent = experiment 2 (text),
+                             # radial = experiment 2 as printed (atan2(y, x))
+    reference: smooth        # smooth: goal moves continuously (phi(t), 20 Hz), constant speed
+                             # waypoints: the paper's 30 waypoints, 1 s each (stop-and-go)
+    n_waypoints: 30          # N (§2.5)
+    duration: 30.0           # one lap [s] (§2.5): about 0.21 m/s and 0.21 rad/s
+    radius: 1.0              # [m]
+    center_x: 0.0
+    center_y: 0.0
+    static_heading: 3.14159  # theta* of experiment 1 [rad]
+    transfer_speed: 0.1      # leader, carrying the box to the first waypoint [m/s]
+    transfer_angular_speed: 0.3   # [rad/s]
+    lap_speed: 0.3           # leader during the lap [m/s]
+    lap_angular_speed: 0.5   # [rad/s]
+    follower_max_speed: 0.4  # Leader-Follower limit during the lap [m/s]
+                             # (follower peak ~0.26 m/s; wheels: 0.4 + 0.1645 * 0.5 < 0.8 m/s)
+    arrival_tolerance: 0.02  # transfer finished [m]
+    arrival_yaw_tolerance: 0.03   # [rad]

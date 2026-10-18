@@ -271,6 +271,38 @@ Visualization Manager:
       Alpha: 1
       Arrow Length: 0.3
       Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Desired object trajectory (Step 9)
+      Enabled: true
+      Topic:
+        Value: /trajectory/desired_path
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Lines
+      Color: 255; 255; 0
+      Alpha: 1
+      Pose Style: Arrows
+      Pose Color: 255; 255; 0
+      Shaft Length: 0.1
+      Shaft Diameter: 0.01
+      Head Length: 0.04
+      Head Diameter: 0.03
+      Value: true
+    - Class: rviz_default_plugins/Pose
+      Name: Current object goal (Step 9)
+      Enabled: true
+      Topic:
+        Value: /trajectory/object_goal
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Shape: Axes
+      Axes Length: 0.2
+      Axes Radius: 0.02
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

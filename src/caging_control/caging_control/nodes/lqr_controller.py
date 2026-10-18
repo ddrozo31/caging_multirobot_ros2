@@ -153,8 +153,10 @@ class LqrController(Node):
     def set_goal(self, goal):
         self.goal = goal
         self.goal_reached = False
+        # throttled: a moving goal (Step 9, 20 Hz) would print 20 lines per second
         self.get_logger().info(
-            f'New goal: x = {goal[0]:.3f} m, y = {goal[1]:.3f} m, yaw = {goal[2]:.3f} rad')
+            f'New goal: x = {goal[0]:.3f} m, y = {goal[1]:.3f} m, yaw = {goal[2]:.3f} rad',
+            throttle_duration_sec=2.0)
 
     # ------------------------------------------------------------ control loop
     def control_step(self):

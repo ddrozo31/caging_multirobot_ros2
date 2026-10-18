@@ -29,6 +29,7 @@ setup(
             'object_marker = caging_control.nodes.object_marker:main',
             'approach_manager = caging_control.nodes.approach_manager:main',
             'leader_follower = caging_control.nodes.leader_follower:main',
+            'trajectory_tracker = caging_control.nodes.trajectory_tracker:main',
         ],
     },
 )
