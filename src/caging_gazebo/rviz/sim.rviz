@@ -84,6 +84,23 @@ Visualization Manager:
       Covariance:
         Value: false
       Value: true
+    - Class: rviz_default_plugins/Pose
+      Name: Goal pose (yellow, Step 4)
+      Enabled: true
+      Topic:
+        Value: /goal_pose
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Shape: Arrow
+      Color: 255; 220; 0
+      Alpha: 1
+      Shaft Length: 0.3
+      Shaft Radius: 0.02
+      Head Length: 0.1
+      Head Radius: 0.05
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -94,6 +111,9 @@ Visualization Manager:
     - Class: rviz_default_plugins/Interact
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/SetGoal   # "2D Goal Pose" button (Step 4)
+      Topic:
+        Value: /goal_pose
   Value: true
   Views:
     Current:

@@ -1,0 +1,17 @@
+# LQR pose controller (Step 4, paper §2.2, Eq. 7-12).
+#
+#   /ground_truth/odom ─┐
+#                       ├─> lqr_controller -> /cmd_vel_nav -> twist_mux -> /mecanum_controller/cmd_vel
+#   /goal_pose ─────────┘                    (priority 10: joystick and keyboard win)
+#
+# The goal (start_with_goal, goal_x, goal_y, goal_yaw) is given by lqr.launch.py arguments
+# or with RViz "2D Goal Pose", so it is not in this file.
+lqr_controller:
+  ros__parameters:
+    sample_time: 0.05        # Ts [s] (20 Hz). Not given in the paper: our choice
+    q_weight: 0.1            # Q = 0.1 I  (Table 1): weight of the pose error
+    r_weight: 0.8            # R = 0.8 I  (Table 1): weight of the control effort
+    max_linear_speed: 0.3    # [m/s]  wheels allow about 0.8-1.1 m/s; the task needs about 0.21
+    max_angular_speed: 1.0   # [rad/s]
+    position_tolerance: 0.01 # [m]   only used to print "goal reached"
+    yaw_tolerance: 0.02      # [rad] only used to print "goal reached"

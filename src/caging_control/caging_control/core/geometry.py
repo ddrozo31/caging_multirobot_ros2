@@ -43,6 +43,19 @@ def transform_pose(pose, frame_origin):
             wrap_angle(theta0 + theta))
 
 
+def global_to_robot(vx, vy, theta):
+    """Rotate a velocity from the global frame {G} to the robot frame {R}.
+
+    Inverse of Eq. 3: [vx_R, vy_R] = R(theta)^T [vx, vy]
+        vx_R =  cos(theta) vx + sin(theta) vy
+        vy_R = -sin(theta) vx + cos(theta) vy
+    (The angular velocity is the same in both frames.)
+    """
+    c = math.cos(theta)
+    s = math.sin(theta)
+    return c * vx + s * vy, -s * vx + c * vy
+
+
 def pose_error(estimated, reference):
     """Error estimated - reference.
 
