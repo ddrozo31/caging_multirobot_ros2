@@ -15,7 +15,8 @@ When /start_trajectory is called (only once the object is closed):
        waypoints (paper):   waypoint i at t = i * duration / N (30 waypoints, 1 s each);
                  the LQR drives to each one and stops -> stop-and-go motion
      with faster limits (the circle needs about 0.21 m/s)
-  3. END: hold the last waypoint and print the errors (like Table 2 of the paper)
+  3. END: hold the last waypoint, print the errors (like Table 2 of the paper),
+     write all samples to a CSV file (Step 10) and publish /trajectory/finished = true
 
 Subscribes:
   /leader/ground_truth/odom, /follower/ground_truth/odom, /object/ground_truth/odom
@@ -24,6 +25,8 @@ Publishes:
   /leader/goal_pose          (geometry_msgs/PoseStamped)  leader goal from Eq. 26
   /trajectory/desired_path   (nav_msgs/Path)              the object waypoints (RViz)
   /trajectory/object_goal    (geometry_msgs/PoseStamped)  current desired object pose (RViz)
+  /trajectory/finished       (std_msgs/Bool, latched)     true when the lap is over (Step 10)
+CSV (Step 10): <results_dir>/<date>_<object>_<orientation>_<reference>.csv, one row per sample (20 Hz)
 Service:
   /start_trajectory          (std_srvs/Trigger)
 
@@ -34,7 +37,10 @@ Run:
   ros2 service call /start_approach std_srvs/srv/Trigger      # approach + closure + transport mode
   ros2 service call /start_trajectory std_srvs/srv/Trigger    # transfer + one lap
 """
+import csv
 import math
+import os
+import time
 
 import rclpy
 from geometry_msgs.msg import Pose, PoseStamped
@@ -83,6 +89,8 @@ class TrajectoryTracker(Node):
             'follower_max_speed': 0.4,  # Leader-Follower limit during the lap [m/s]
             'arrival_tolerance': 0.02,  # transfer finished: leader closer than this [m]
             'arrival_yaw_tolerance': 0.03,   # [rad]
+            'object': 'box',            # only for the CSV file name (Step 10)
+            'results_dir': 'results',   # CSV folder (relative = from where you launched)
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -106,6 +114,8 @@ class TrajectoryTracker(Node):
         self.goal_pub = self.create_publisher(PoseStamped, '/leader/goal_pose', 10)
         self.path_pub = self.create_publisher(Path, '/trajectory/desired_path', latched)
         self.object_goal_pub = self.create_publisher(PoseStamped, '/trajectory/object_goal', 10)
+        self.finished_pub = self.create_publisher(Bool, '/trajectory/finished', latched)
+        self.finished_pub.publish(Bool(data=False))
         self.param_clients = {
             'leader': self.create_client(SetParameters, '/leader/lqr_controller/set_parameters'),
             'leader_follower': self.create_client(SetParameters, '/leader_follower/set_parameters'),
@@ -205,12 +215,22 @@ class TrajectoryTracker(Node):
             if elapsed >= self.p['duration']:
                 self.stage = 'done'
                 self.print_summary()
+                self.write_csv()
+                self.finished_pub.publish(Bool(data=True))
 
     def record_errors(self, object_goal):
         """One sample of the errors of Table 2 (against the waypoint active now)."""
         leader, follower, obj = self.poses['leader'], self.poses['follower'], self.poses['object']
         d, alpha, theta_f = formation_state(leader, follower)
         self.samples.append({
+            # raw data for the plots (Step 10)
+            't': self.seconds_since(self.lap_start),
+            'x_O': obj[0], 'y_O': obj[1], 'th_O': obj[2],
+            'x_L': leader[0], 'y_L': leader[1], 'th_L': leader[2],
+            'x_F': follower[0], 'y_F': follower[1], 'th_F': follower[2],
+            'x_ref': object_goal[0], 'y_ref': object_goal[1], 'th_ref': object_goal[2],
+            'd': d, 'alpha': alpha, 'd_ref': self.distance,
+            # errors of Table 2
             'e_dO': math.hypot(obj[0] - object_goal[0], obj[1] - object_goal[1]),
             'e_xO': abs(obj[0] - object_goal[0]),
             'e_yO': abs(obj[1] - object_goal[1]),
@@ -223,9 +243,22 @@ class TrajectoryTracker(Node):
             'cage': math.hypot(obj[0] - (leader[0] + follower[0]) / 2, obj[1] - (leader[1] + follower[1]) / 2),
         })
 
+    def write_csv(self):
+        """All the samples of the lap in one CSV file (for plot_results, Step 10)."""
+        os.makedirs(self.p['results_dir'], exist_ok=True)
+        name = (f"{time.strftime('%Y%m%d_%H%M%S')}_{self.p['object']}_"
+                f"{self.p['orientation']}_{self.p['reference']}.csv")
+        path = os.path.abspath(os.path.join(self.p['results_dir'], name))
+        with open(path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=list(self.samples[0].keys()))
+            writer.writeheader()
+            writer.writerows(self.samples)
+        self.get_logger().info(f'CSV written: {path}')
+
     def print_summary(self):
         n = len(self.samples)
-        mean = {k: sum(s[k] for s in self.samples) / n for k in self.samples[0]}
+        mean = {k: sum(s[k] for s in self.samples) / n
+                for k in ('e_dO', 'e_xO', 'e_yO', 'e_thL', 'e_d', 'e_thF', 'e_alpha', 'path', 'cage')}
         worst = {k: max(s[k] for s in self.samples) for k in ('path', 'cage', 'e_d')}
         paper = {'static': (0.10, 0.07, 0.06, 0.08, 0.01, 0.09, 0.06),
                  'tangent': (0.13, 0.09, 0.07, 0.15, 0.01, 0.10, 0.09),

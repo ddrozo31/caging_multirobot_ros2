@@ -5,7 +5,7 @@ package_name = 'caging_control'
 setup(
     name=package_name,
     version='0.0.1',
-    # find_packages() finds caging_control, caging_control.core and caging_control.nodes
+    # find_packages() finds caging_control, caging_control.core, .nodes and .tools
     # (every folder with an __init__.py)
     packages=find_packages(exclude=['test']),
     data_files=[
@@ -30,6 +30,9 @@ setup(
             'approach_manager = caging_control.nodes.approach_manager:main',
             'leader_follower = caging_control.nodes.leader_follower:main',
             'trajectory_tracker = caging_control.nodes.trajectory_tracker:main',
+            'task_manager = caging_control.nodes.task_manager:main',
+            'safety_supervisor = caging_control.nodes.safety_supervisor:main',
+            'plot_results = caging_control.tools.plot_results:main',
         ],
     },
 )

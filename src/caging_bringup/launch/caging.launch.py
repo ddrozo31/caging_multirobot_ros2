@@ -30,16 +30,28 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+# Grasp of each object (Step 10). The closing distance d* makes the object just touch
+# both V grippers (120 deg V, apex at l_g = 0.12 m), see docs/steps/step_10_task_and_results.md:
+#   box:        corner in the apex, 0.141 m from the center   -> d* = 2 (0.141 + 0.12) = 0.523 (Table 1: 0.52)
+#   hemisphere: sphere tangent to both fingers, 0.1/sin(60)   -> d* = 0.471
+#   pyramid:    follower on a corner, leader on a face        -> d* = 0.413
+# Only the box has been tested so far.
+OBJECTS = {
+    'box':        {'grasp_offset': 0.7854, 'closing_distance': 0.52},
+    'hemisphere': {'grasp_offset': 0.0,    'closing_distance': 0.471},
+    'pyramid':    {'grasp_offset': 0.0,    'closing_distance': 0.413},
+}
+
 
 def generate_launch_description():
 
     bringup_share = get_package_share_directory('caging_bringup')
 
-    # --- 1. Step 5 scene, robots WITH grippers, the box ---
+    # --- 1. Step 5 scene, robots WITH grippers, the object (box by default) ---
     scene = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, 'launch', 'two_robots.launch.py')),
         launch_arguments={
-            'object': 'box',
+            'object': LaunchConfiguration('object'),
             'object_yaw': LaunchConfiguration('object_yaw'),
             'gripper': 'true',
             'rviz': LaunchConfiguration('rviz'),
@@ -51,6 +63,8 @@ def generate_launch_description():
     def manager_and_formation(context):
         params = [os.path.join(bringup_share, 'config', 'approach.yaml'),
                   os.path.join(bringup_share, 'config', 'caging.yaml')]
+        # grasp of this object (overrides caging.yaml)
+        params.append(OBJECTS[LaunchConfiguration('object').perform(context)])
         nodes = []
         if LaunchConfiguration('leader_follower').perform(context) == 'true':
             params.append(os.path.join(bringup_share, 'config', 'transport.yaml'))
@@ -71,6 +85,8 @@ def generate_launch_description():
         return nodes
 
     return LaunchDescription([
+        DeclareLaunchArgument('object', default_value='box',
+                              description='box (tested), hemisphere, pyramid'),
         DeclareLaunchArgument('object_yaw', default_value='3.1416',
                               description='Object orientation theta_O [rad] (Table 1: pi)'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),

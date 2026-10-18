@@ -38,6 +38,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(os.path.join(bringup_share, 'launch', 'caging.launch.py')),
         launch_arguments={
             'leader_follower': 'true',
+            'object': LaunchConfiguration('object'),
             'object_yaw': LaunchConfiguration('object_yaw'),
             'rviz': LaunchConfiguration('rviz'),
             'world': LaunchConfiguration('world'),
@@ -51,7 +52,9 @@ def generate_launch_description():
         output='screen',
         parameters=[os.path.join(bringup_share, 'config', 'trajectory.yaml'),
                     {'use_sim_time': True, 'orientation': LaunchConfiguration('orientation'),
-                     'reference': LaunchConfiguration('reference')}],
+                     'reference': LaunchConfiguration('reference'),
+                     'object': LaunchConfiguration('object'),
+                     'results_dir': LaunchConfiguration('results_dir')}],
     )
 
     return LaunchDescription([
@@ -59,6 +62,10 @@ def generate_launch_description():
                               description='static (experiment 1), tangent (experiment 2), radial'),
         DeclareLaunchArgument('reference', default_value='smooth',
                               description='smooth (continuous goal) or waypoints (paper)'),
+        DeclareLaunchArgument('object', default_value='box',
+                              description='box (tested), hemisphere, pyramid'),
+        DeclareLaunchArgument('results_dir', default_value='results',
+                              description='Folder for the CSV of each lap (relative to where you launch)'),
         DeclareLaunchArgument('object_yaw', default_value='3.1416',
                               description='Object orientation theta_O [rad] (Table 1: pi)'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),

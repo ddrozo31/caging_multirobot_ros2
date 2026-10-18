@@ -37,6 +37,8 @@ Publishes:
   /approach/poses   (geometry_msgs/PoseArray)       q_L* and q_F* for RViz
   /approach/grid    (nav_msgs/OccupancyGrid)         inflated obstacles of the last plan
   /object_closed    (std_msgs/Bool)                  true when the object is caged (Step 7)
+  /approach/stage   (std_msgs/String, latched)       approach_leader, approach_follower,
+                                                     closure, transport, failed (Step 10)
 Service:
   /start_approach   (std_srvs/Trigger)
 
@@ -55,7 +57,7 @@ from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 
 from caging_control.core.approach import approach_poses
@@ -130,6 +132,7 @@ class ApproachManager(Node):
         self.grid_pub = self.create_publisher(OccupancyGrid, '/approach/grid', latched)
         self.closed_pub = self.create_publisher(Bool, '/object_closed', latched)
         self.closed_pub.publish(Bool(data=False))
+        self.stage_pub = self.create_publisher(String, '/approach/stage', latched)
 
         # Clients to change parameters of other nodes: each LQR and the Leader-Follower
         self.param_clients = {r: self.create_client(SetParameters, f'/{r}/lqr_controller/set_parameters')
@@ -183,6 +186,7 @@ class ApproachManager(Node):
     def start_next_robot(self):
         """Plan the path of the next robot in the queue and send its first waypoint."""
         self.robot = self.queue.pop(0)
+        self.stage_pub.publish(String(data=f'approach_{self.robot}'))
         other = 'follower' if self.robot == 'leader' else 'leader'
         start = self.poses[self.robot]
         goal = self.targets[self.robot]
@@ -210,6 +214,7 @@ class ApproachManager(Node):
                 'inflated obstacle (object margin too big, or the other robot is in the way)')
             self.publish_grid(grid)
             self.robot = None
+            self.stage_pub.publish(String(data='failed'))
             return False
         if grid.inside(*goal_cell):
             grid.occupied[goal_cell] = False
@@ -219,6 +224,7 @@ class ApproachManager(Node):
         if cells is None:
             self.get_logger().error(f'{self.robot}: no collision-free path to its approach pose')
             self.robot = None
+            self.stage_pub.publish(String(data='failed'))
             return False
 
         # Cell centers -> keep the corners. The first point is the start (drop it),
@@ -307,6 +313,7 @@ class ApproachManager(Node):
             msg.pose = to_pose_msg(*goal)
             self.goal_pubs[robot].publish(msg)
         self.closing_start = self.get_clock().now()
+        self.stage_pub.publish(String(data='closure'))
         self.get_logger().info(
             f"Closing at {self.p['closing_speed']} m/s to d* = {self.p['closing_distance']} m: "
             + ', '.join(f'{r} -> ({g[0]:.3f}, {g[1]:.3f})' for r, g in self.closing_goals.items()))
@@ -347,6 +354,7 @@ class ApproachManager(Node):
             self.get_logger().warn(
                 f'NOT closed after {elapsed:.0f} s: d = {d:.3f} m, '
                 f'object {center_error:.3f} m from the midpoint')
+            self.stage_pub.publish(String(data='failed'))
         else:
             return   # keep waiting
         for robot in ROBOTS:
@@ -355,6 +363,7 @@ class ApproachManager(Node):
 
     def start_transport(self):
         """Step 8: follower LQR off -> Leader-Follower on; leader slowed down."""
+        self.stage_pub.publish(String(data='transport'))
         self.set_remote_parameter('follower', 'active', False)          # 1. follower LQR off
         self.set_remote_parameter('leader_follower', 'active', True)    # 2. formation control on
         self.set_lqr_speed('leader', self.p['transport_speed'])         # 3. leader carries slowly
