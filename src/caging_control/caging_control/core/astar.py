@@ -33,6 +33,7 @@ class Grid:
         self.cols = int(round((x_max - x_min) / resolution))   # cells along x
         self.rows = int(round((y_max - y_min) / resolution))   # cells along y
         self.occupied = np.zeros((self.rows, self.cols), dtype=bool)
+        self.circles = []   # exact obstacles (x, y, radius), to check points without rounding
 
         # Center of every cell, in meters (used to draw the circles)
         cols = np.arange(self.cols)
@@ -61,6 +62,17 @@ class Grid:
         """Mark as occupied every cell whose center is closer than `radius` to (x, y)."""
         distance_squared = (self.cell_x - x) ** 2 + (self.cell_y - y) ** 2
         self.occupied |= distance_squared <= radius ** 2
+        self.circles.append((x, y, radius))
+
+    def point_is_free(self, x, y):
+        """Exact test of a POINT (no rounding to cells): inside the area and outside every circle.
+
+        A cell can be occupied although a point inside it is free: the cell is tested at its
+        CENTER, which can be up to resolution * sqrt(2) / 2 (3.5 cm for 5 cm cells) away.
+        """
+        inside_area = (self.x_min <= x < self.x_min + self.cols * self.resolution
+                       and self.y_min <= y < self.y_min + self.rows * self.resolution)
+        return inside_area and all(math.hypot(x - cx, y - cy) > r for cx, cy, r in self.circles)
 
 
 # The 8 neighbors of a cell: (row step, col step, cost in cells)

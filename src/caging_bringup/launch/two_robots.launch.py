@@ -50,6 +50,7 @@ def launch_setup(context):
     rviz = LaunchConfiguration('rviz').perform(context)
     world = LaunchConfiguration('world').perform(context)
     object_yaw = LaunchConfiguration('object_yaw').perform(context)
+    gripper = LaunchConfiguration('gripper').perform(context)
 
     # --- 1. World: Gazebo + bridge + RViz ---
     actions = [IncludeLaunchDescription(
@@ -63,7 +64,7 @@ def launch_setup(context):
         # --- 2-3. Spawn the robot in its namespace ---
         actions.append(IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(gazebo_share, 'launch', 'spawn_robot.launch.py')),
-            launch_arguments={'name': name, 'color': robot['color'],
+            launch_arguments={'name': name, 'color': robot['color'], 'gripper': gripper,
                               'x': str(x), 'y': str(y), 'yaw': str(yaw)}.items(),
         ))
 
@@ -117,6 +118,8 @@ def generate_launch_description():
                               description='box, hemisphere, pyramid or none'),
         DeclareLaunchArgument('object_yaw', default_value='3.1416',
                               description='Object orientation theta_O [rad] (Table 1: pi)'),
+        DeclareLaunchArgument('gripper', default_value='false',
+                              description='Mount the V-shaped soft grippers (Step 7)'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),
         DeclareLaunchArgument(
             'world',

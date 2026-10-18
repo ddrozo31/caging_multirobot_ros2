@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 6
+# caging_multirobot_ros2: the project after Step 7
 
-This commit (tag `step-06`) is the project as it was at the end of
-**Step 6: object approach with Eq. 13 and A***. The guides are their final version; the code in `src/` is the
+This commit (tag `step-07`) is the project as it was at the end of
+**Step 7: soft V gripper and object closure**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -18,6 +18,7 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 - [Step 4 (companion) — The Math of LQR, Step by Step](docs/steps/step_04_lqr_math.md)
 - [Step 5 — Two Robots and the Objects](docs/steps/step_05_two_robots.md)
 - [Step 6 — Object Approach: Approach Poses and A* Planning](docs/steps/step_06_approach_astar.md)
+- [Step 7 — Soft Gripper and Object Closure (Caging)](docs/steps/step_07_gripper_caging.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 

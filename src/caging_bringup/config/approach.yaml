@@ -7,11 +7,12 @@
     # --- Eq. 13: d_a = 2 r_O + l_g = 0.42 m ---
     object_radius: 0.15      # r_O [m] (Table 1; the same value for the three objects)
     gripper_distance: 0.12   # l_g [m] (Table 1): robot center -> gripper center
+    grasp_offset: 0.0        # rotation of the approach axis [rad]; 0 = Eq. 13 (Step 7 box: pi/4)
 
     # --- Obstacles (inflation): the robot is a circle around its chassis ---
     robot_radius: 0.155      # sqrt(0.119^2 + 0.10^2): half length and half width [m]
-    safety_margin: 0.05      # [m]  object -> 0.15 + 0.155 + 0.05 = 0.355 m (< d_a, so q* is free)
-                             #      other robot -> 0.155 + 0.155 + 0.05 = 0.36 m
+    object_margin: 0.05      # [m]  object -> 0.15 + 0.155 + 0.05 = 0.355 m (< d_a, so q* is free)
+    safety_margin: 0.05      # [m]  other robot -> 0.155 + 0.155 + 0.05 = 0.36 m
 
     # --- Grid: the Vicon area of the paper (3 m x 6 m) ---
     resolution: 0.05         # cell size [m] -> 60 x 120 cells

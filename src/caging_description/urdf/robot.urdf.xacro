@@ -5,6 +5,7 @@
   To see the final URDF that xacro generates, run:
     xacro $(ros2 pkg prefix caging_description)/share/caging_description/urdf/robot.urdf.xacro
     xacro ... robot.urdf.xacro namespace:=leader color:=red     (one of several robots, Step 5)
+    xacro ... robot.urdf.xacro namespace:=leader color:=red gripper:=true   (with gripper, Step 7)
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rosmaster_x3">
 
@@ -26,9 +27,17 @@
     <xacro:arg name="color" default="white"/>
     <xacro:property name="body_color" value="$(arg color)"/>
 
+    <!-- gripper (Step 7): true = mount the V-shaped soft gripper (gripper.xacro).
+         Default false: Steps 1-6 use the robot without gripper. -->
+    <xacro:arg name="gripper" default="false"/>
+    <xacro:property name="gripper" value="$(arg gripper)"/>
+
     <xacro:include filename="properties.xacro"/>   <!-- colors (materials) -->
     <xacro:include filename="robot_core.xacro"/>   <!-- links and joints of the robot -->
     <xacro:include filename="ros2_control.xacro"/> <!-- joint interfaces for ros2_control -->
     <xacro:include filename="gazebo.xacro"/>       <!-- Gazebo-only settings (friction, plugins) -->
+    <xacro:if value="${gripper}">
+        <xacro:include filename="gripper.xacro"/>  <!-- V-shaped soft gripper (Step 7) -->
+    </xacro:if>
 
 </robot>

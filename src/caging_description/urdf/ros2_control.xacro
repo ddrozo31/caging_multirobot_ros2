@@ -34,6 +34,19 @@
         <xacro:wheel_interfaces index="2"/>
         <xacro:wheel_interfaces index="3"/>
 
+        <!-- Gripper fingers (Step 7): only READ their angle (no command, the spring moves
+             them). Then joint_state_broadcaster publishes it and RViz can draw the fingers. -->
+        <xacro:if value="${gripper}">
+            <joint name="finger_left_joint">
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="finger_right_joint">
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+        </xacro:if>
+
     </ros2_control>
 
 </robot>

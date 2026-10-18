@@ -1,0 +1,25 @@
+# Object closure / caging (Step 7), loaded AFTER approach.yaml (these values win).
+#
+# With the gripper the robot is bigger: the fingertips are 0.20 m ahead of the robot
+# center and +-0.139 m to the sides -> footprint circle 0.245 m.
+#   object inflation = r_O + 0.245 + object_margin = 0.15 + 0.245 + 0.02 = 0.415 m < d_a = 0.42 m
+# (with the Step 6 margin 0.05 it would be 0.445 m > d_a: the approach pose would be
+#  inside the forbidden area and A* would find no path).
+/**/approach_manager:
+  ros__parameters:
+    robot_radius: 0.245
+    object_margin: 0.02
+
+    # --- Take the box by its CORNERS (approach along its diagonal) ---
+    # The 90 deg box corner sits in the apex of the 120 deg V. At d* = 0.52 m the apex is
+    # 0.26 - 0.12 = 0.14 m from the box center and the corner 0.141 m: the corner just
+    # touches the apex. Pyramid: 0 (follower on a corner); hemisphere: any value.
+    grasp_offset: 0.7854     # pi/4 [rad]
+
+    # --- Closure: both robots close at the same time, slowly ---
+    do_closure: true
+    closing_distance: 0.52   # d* [m] (Table 1): each robot advances (0.84 - 0.52) / 2 = 0.16 m
+    closing_speed: 0.05      # [m/s]  gentle contact with the light object
+    normal_speed: 0.3        # [m/s]  restored after the closure
+    closure_distance_tolerance: 0.01   # |d - d*| [m]
+    closure_center_tolerance: 0.03     # object center -> midpoint of the robots [m]

@@ -41,12 +41,14 @@ def launch_setup(context):
     y = LaunchConfiguration('y').perform(context)
     yaw = LaunchConfiguration('yaw').perform(context)
     color = LaunchConfiguration('color').perform(context)
+    gripper = LaunchConfiguration('gripper').perform(context)
 
     # --- 1. robot_state_publisher in the namespace <name> ---
     rsp = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory('caging_description'), 'launch', 'rsp.launch.py')),
-        launch_arguments={'use_sim_time': 'true', 'namespace': name, 'color': color}.items(),
+        launch_arguments={'use_sim_time': 'true', 'namespace': name, 'color': color,
+                          'gripper': gripper}.items(),
     )
 
     # --- 2. Spawn the model "<name>" ---
@@ -99,6 +101,8 @@ def generate_launch_description():
                               description='Robot name = namespace = Gazebo model name'),
         DeclareLaunchArgument('color', default_value='white',
                               description='Chassis color: white, red, blue, ...'),
+        DeclareLaunchArgument('gripper', default_value='false',
+                              description='Mount the V-shaped soft gripper (Step 7)'),
         DeclareLaunchArgument('x', default_value='0.0', description='Initial x [m]'),
         DeclareLaunchArgument('y', default_value='0.0', description='Initial y [m]'),
         DeclareLaunchArgument('yaw', default_value='0.0', description='Initial yaw [rad]'),

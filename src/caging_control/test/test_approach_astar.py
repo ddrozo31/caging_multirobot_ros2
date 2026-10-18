@@ -34,6 +34,16 @@ def test_approach_poses_face_each_other():
     assert math.isclose(abs(math.remainder(leader[2] - follower[2], 2 * math.pi)), math.pi)
 
 
+def test_grasp_offset_box_corners():
+    # Box at theta_O = 0, grasp_offset = pi/4: the robots stand on the diagonal, at the corners
+    leader, follower = approach_poses((0.0, 0.0, 0.0), 0.15, 0.12, grasp_offset=math.pi / 4)
+    c = 0.42 / math.sqrt(2)
+    assert math.isclose(leader[0], -c) and math.isclose(leader[1], -c)
+    assert math.isclose(leader[2], math.pi / 4)                 # looking at the corner (+x, +y)
+    assert math.isclose(follower[0], c) and math.isclose(follower[1], c)
+    assert math.isclose(follower[2], math.pi / 4 - math.pi)
+
+
 def test_astar_free_grid_is_straight():
     grid = Grid(0.0, 1.0, 0.0, 1.0, 0.1)
     path = astar(grid, (0, 0), (9, 9))
@@ -70,3 +80,32 @@ def test_simplify_path_keeps_free_corners():
     assert len(short) < len(points) / 5
     for p1, p2 in zip(short, short[1:]):
         assert line_is_free(grid, p1, p2)
+
+
+def plan_both(object_yaw, robot_radius, object_margin, safety_margin=0.05):
+    """Plan leader then follower as approach_manager does; True if both paths exist."""
+    starts = {'leader': (0.5, -2.5), 'follower': (-0.5, -2.5)}
+    goals = dict(zip(['leader', 'follower'], approach_poses((0.0, 0.0, object_yaw), 0.15, 0.12)))
+    for robot, other in (('leader', 'follower'), ('follower', 'leader')):
+        grid = Grid(-1.5, 1.5, -3.0, 3.0, 0.05)
+        grid.add_circle(0.0, 0.0, 0.15 + robot_radius + object_margin)
+        grid.add_circle(*starts[other], 2 * robot_radius + safety_margin)
+        start = grid.world_to_cell(*starts[robot])
+        grid.occupied[start] = False
+        goal = goals[robot]
+        assert grid.point_is_free(goal[0], goal[1])
+        goal_cell = grid.world_to_cell(goal[0], goal[1])
+        grid.occupied[goal_cell] = False      # the exact goal is free (see approach_manager)
+        if astar(grid, start, goal_cell) is None:
+            return False
+        starts[robot] = goal[:2]              # the robot is now parked at its approach pose
+    return True
+
+
+def test_every_object_orientation_has_a_path():
+    # Regression (Step 7): with object_yaw = -45 deg the goal CELL was inside the inflated
+    # circle and A* failed for 28 of 72 orientations. Check every 5 deg, with and without gripper.
+    for deg in range(0, 360, 5):
+        yaw = math.radians(deg)
+        assert plan_both(yaw, robot_radius=0.155, object_margin=0.05), f'Step 6, yaw {deg} deg'
+        assert plan_both(yaw, robot_radius=0.245, object_margin=0.02), f'Step 7, yaw {deg} deg'

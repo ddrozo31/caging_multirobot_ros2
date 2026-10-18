@@ -1,5 +1,6 @@
 """
-Object approach with A* (Step 6, paper §2.3, Fig. 7, Eq. 13).
+Object approach with A* (Step 6, paper §2.3, Fig. 7, Eq. 13)
+and object closure / caging (Step 7, paper §2.1.2 and §3).
 
 When the service /start_approach is called:
   1. read the object pose from the ground truth ("Vicon")
@@ -10,6 +11,13 @@ When the service /start_approach is called:
   4. when the leader is at q_L*, do the same for the FOLLOWER (the leader,
      now parked at q_L*, is the obstacle)
   5. done: both robots in front of the object, ready for the caging (Step 7)
+  6. (only if do_closure = true, Step 7) CLOSURE: both robots at the same time
+     move slowly towards the object until their centers are d* apart:
+         leader goal   = q_O + d*/2 [-cos(theta_O), -sin(theta_O)]
+         follower goal = q_O + d*/2 [ cos(theta_O),  sin(theta_O)]
+     (theta_O + grasp_offset: e.g. the box is taken by its corners)
+     The object is CLOSED (caged) when both robots are at their goals, their
+     distance is d* and the object center is between them -> /object_closed = true
 
 The robots move ONE AFTER THE OTHER, as in the paper, so a plan never has to
 deal with a moving robot.
@@ -25,6 +33,7 @@ Publishes:
   /leader/planned_path, /follower/planned_path  (nav_msgs/Path)         for RViz
   /approach/poses   (geometry_msgs/PoseArray)       q_L* and q_F* for RViz
   /approach/grid    (nav_msgs/OccupancyGrid)         inflated obstacles of the last plan
+  /object_closed    (std_msgs/Bool)                  true when the object is caged (Step 7)
 Service:
   /start_approach   (std_srvs/Trigger)
 
@@ -39,8 +48,11 @@ import math
 import rclpy
 from geometry_msgs.msg import Pose, PoseArray, PoseStamped
 from nav_msgs.msg import OccupancyGrid, Odometry, Path
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
 from caging_control.core.approach import approach_poses
@@ -74,13 +86,23 @@ class ApproachManager(Node):
         defaults = {
             'object_radius': 0.15,      # r_O [m]  (Table 1, the same for every object)
             'gripper_distance': 0.12,   # l_g [m]  (Table 1)
-            'robot_radius': 0.155,      # circle around the chassis [m]
-            'safety_margin': 0.05,      # extra space around obstacles [m]
+            'grasp_offset': 0.0,        # rotate the approach axis [rad] (box corners: pi/4, Step 7)
+            'robot_radius': 0.155,      # circle around the chassis [m] (0.245 with gripper)
+            'safety_margin': 0.05,      # extra space around the other robot [m]
+            'object_margin': 0.05,      # extra space around the object [m] (0.02 with gripper)
             'resolution': 0.05,         # grid cell size [m]
             'x_min': -1.5, 'x_max': 1.5, 'y_min': -3.0, 'y_max': 3.0,   # arena (Vicon area 3 x 6 m)
             'waypoint_tolerance': 0.10, # switch to the next corner closer than this [m]
             'position_tolerance': 0.01, # final pose reached [m]
             'yaw_tolerance': 0.02,      # final pose reached [rad]
+            # --- Closure (Step 7) ---
+            'do_closure': False,        # true: after the approach, close on the object
+            'closing_distance': 0.52,   # d* [m] between robot centers (Table 1)
+            'closing_speed': 0.05,      # LQR speed limit while closing [m/s]
+            'normal_speed': 0.3,        # LQR speed limit restored after closing [m/s]
+            'closure_distance_tolerance': 0.01,  # |d - d*| [m]
+            'closure_center_tolerance': 0.03,    # object center -> midpoint of the robots [m]
+            'closure_timeout': 30.0,    # give up if the object is not closed after this [s]
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -99,6 +121,12 @@ class ApproachManager(Node):
         latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)  # RViz may come later
         self.poses_pub = self.create_publisher(PoseArray, '/approach/poses', latched)
         self.grid_pub = self.create_publisher(OccupancyGrid, '/approach/grid', latched)
+        self.closed_pub = self.create_publisher(Bool, '/object_closed', latched)
+        self.closed_pub.publish(Bool(data=False))
+
+        # Clients to change the speed limit of each LQR (a parameter of that node)
+        self.param_clients = {r: self.create_client(SetParameters, f'/{r}/lqr_controller/set_parameters')
+                              for r in ROBOTS}
 
         # --- Service and the loop that follows the waypoints (10 Hz) ---
         self.create_service(Trigger, '/start_approach', self.start_callback)
@@ -109,12 +137,13 @@ class ApproachManager(Node):
         self.queue = []          # robots still to move, in order
         self.robot = None        # robot moving now
         self.waypoints = []      # remaining corners of its path (x, y)
+        self.closing_goals = None  # robot -> closing goal (Step 7); None when not closing
         self.get_logger().info('Ready. Start with:  ros2 service call /start_approach std_srvs/srv/Trigger')
 
     # --------------------------------------------------------------- start
     def start_callback(self, request, response):
-        if self.robot is not None:
-            response.success, response.message = False, f'Approach already running ({self.robot})'
+        if self.robot is not None or self.closing_goals is not None:
+            response.success, response.message = False, 'Approach or closure already running'
             return response
         if None in self.poses.values():
             missing = [n for n, p in self.poses.items() if p is None]
@@ -123,7 +152,8 @@ class ApproachManager(Node):
 
         # Eq. 13 with the object pose measured NOW
         leader, follower = approach_poses(
-            self.poses['object'], self.p['object_radius'], self.p['gripper_distance'])
+            self.poses['object'], self.p['object_radius'], self.p['gripper_distance'],
+            self.p['grasp_offset'])
         self.targets = {'leader': leader, 'follower': follower}
         self.get_logger().info(
             f"Object at ({self.poses['object'][0]:.3f}, {self.poses['object'][1]:.3f}, "
@@ -152,7 +182,7 @@ class ApproachManager(Node):
         grid = Grid(self.p['x_min'], self.p['x_max'], self.p['y_min'], self.p['y_max'], self.p['resolution'])
         r_robot, margin = self.p['robot_radius'], self.p['safety_margin']
         obj = self.poses['object']
-        grid.add_circle(obj[0], obj[1], self.p['object_radius'] + r_robot + margin)
+        grid.add_circle(obj[0], obj[1], self.p['object_radius'] + r_robot + self.p['object_margin'])
         grid.add_circle(self.poses[other][0], self.poses[other][1], r_robot + r_robot + margin)
 
         # The robot itself may start inside an inflated area (e.g. it was pushed):
@@ -161,7 +191,21 @@ class ApproachManager(Node):
         if grid.inside(*start_cell):
             grid.occupied[start_cell] = False
 
-        cells = astar(grid, start_cell, grid.world_to_cell(goal[0], goal[1]))
+        # The goal: the approach pose is d_a = 0.42 m from the object, just outside the inflated
+        # circle (0.355 m, or 0.415 m with the gripper). Its CELL CENTER can be up to 3.5 cm away
+        # and fall inside the circle. If the exact pose is free, free its cell too.
+        goal_cell = grid.world_to_cell(goal[0], goal[1])
+        if not grid.point_is_free(goal[0], goal[1]):
+            self.get_logger().error(
+                f'{self.robot}: its approach pose ({goal[0]:.3f}, {goal[1]:.3f}) is inside an '
+                'inflated obstacle (object margin too big, or the other robot is in the way)')
+            self.publish_grid(grid)
+            self.robot = None
+            return False
+        if grid.inside(*goal_cell):
+            grid.occupied[goal_cell] = False
+
+        cells = astar(grid, start_cell, goal_cell)
         self.publish_grid(grid)
         if cells is None:
             self.get_logger().error(f'{self.robot}: no collision-free path to its approach pose')
@@ -189,6 +233,9 @@ class ApproachManager(Node):
         self.goal_pubs[self.robot].publish(msg)
 
     def step(self):
+        if self.closing_goals is not None:
+            self.check_closure()
+            return
         if self.robot is None:
             return
         pose = self.poses[self.robot]
@@ -212,6 +259,76 @@ class ApproachManager(Node):
             else:
                 self.get_logger().info('Approach finished: both robots in front of the object')
                 self.robot = None
+                if self.p['do_closure']:
+                    self.start_closure()
+
+    # ------------------------------------------------------- closure (Step 7)
+    def set_lqr_speed(self, robot, speed):
+        """Change the parameter max_linear_speed of the LQR of `robot` (no waiting)."""
+        value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=float(speed))
+        request = SetParameters.Request(parameters=[Parameter(name='max_linear_speed', value=value)])
+        self.param_clients[robot].call_async(request)
+
+    def start_closure(self):
+        """Both robots move at the same time, slowly, until they are d* apart."""
+        x_o, y_o, theta_o = self.poses['object']   # measured again, after the approach
+        theta_o += self.p['grasp_offset']           # same approach axis as Eq. 13 (corners)
+        half = self.p['closing_distance'] / 2.0
+        self.closing_goals = {
+            'leader': (x_o - half * math.cos(theta_o), y_o - half * math.sin(theta_o),
+                       self.targets['leader'][2]),
+            'follower': (x_o + half * math.cos(theta_o), y_o + half * math.sin(theta_o),
+                         self.targets['follower'][2]),
+        }
+        for robot, goal in self.closing_goals.items():
+            self.set_lqr_speed(robot, self.p['closing_speed'])
+            msg = PoseStamped()
+            msg.header.frame_id = 'world'
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.pose = to_pose_msg(*goal)
+            self.goal_pubs[robot].publish(msg)
+        self.closing_start = self.get_clock().now()
+        self.get_logger().info(
+            f"Closing at {self.p['closing_speed']} m/s to d* = {self.p['closing_distance']} m: "
+            + ', '.join(f'{r} -> ({g[0]:.3f}, {g[1]:.3f})' for r, g in self.closing_goals.items()))
+
+    def check_closure(self):
+        """Object closure condition (geometric, with the ground truth), checked every 0.1 s:
+
+          1. each robot within position/yaw tolerance of its closing goal
+          2. distance between the robots within closure_distance_tolerance of d*
+          3. object center within closure_center_tolerance of the midpoint of the robots
+
+        (1 alone is not enough: two robots each 1 cm short leave d 2 cm too long.)
+        """
+        leader, follower, obj = self.poses['leader'], self.poses['follower'], self.poses['object']
+        at_goals = True
+        for robot in ROBOTS:
+            _, _, etheta, distance = pose_error(self.poses[robot], self.closing_goals[robot])
+            if distance > self.p['position_tolerance'] or abs(etheta) > self.p['yaw_tolerance']:
+                at_goals = False
+        d = math.hypot(leader[0] - follower[0], leader[1] - follower[1])
+        mid_x, mid_y = (leader[0] + follower[0]) / 2.0, (leader[1] + follower[1]) / 2.0
+        center_error = math.hypot(obj[0] - mid_x, obj[1] - mid_y)
+        closed = (at_goals
+                  and abs(d - self.p['closing_distance']) < self.p['closure_distance_tolerance']
+                  and center_error < self.p['closure_center_tolerance'])
+
+        elapsed = (self.get_clock().now() - self.closing_start).nanoseconds * 1e-9
+        if closed:
+            self.get_logger().info(
+                f'OBJECT CLOSED after {elapsed:.1f} s: d = {d:.3f} m (d* = {self.p["closing_distance"]}), '
+                f'object {center_error:.3f} m from the midpoint')
+            self.closed_pub.publish(Bool(data=True))
+        elif elapsed > self.p['closure_timeout']:
+            self.get_logger().warn(
+                f'NOT closed after {elapsed:.0f} s: d = {d:.3f} m, '
+                f'object {center_error:.3f} m from the midpoint')
+        else:
+            return   # keep waiting
+        for robot in ROBOTS:
+            self.set_lqr_speed(robot, self.p['normal_speed'])
+        self.closing_goals = None
 
     # ------------------------------------------------------------ RViz
     def publish_path(self, start, cells, grid):

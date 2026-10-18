@@ -16,6 +16,7 @@ Arguments:
                                topics  -> /leader/robot_description, /leader/joint_states
                                frames  -> leader/base_link, leader/wheel_0_link, ...
   color         chassis color: white (default), red, blue, ...  (Step 5)
+  gripper       true = mount the V-shaped soft gripper (Step 7); default false
 
 Run alone:
   ros2 launch caging_description rsp.launch.py
@@ -37,13 +38,14 @@ def launch_setup(context):
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context) == 'true'
     namespace = LaunchConfiguration('namespace').perform(context)
     color = LaunchConfiguration('color').perform(context)
+    gripper = LaunchConfiguration('gripper').perform(context)
 
     # --- Robot description: xacro -> URDF (XML string) ---
     # namespace and color go to xacro as arguments (namespace: Gazebo plugins; color: chassis).
     xacro_file = os.path.join(
         get_package_share_directory('caging_description'), 'urdf', 'robot.urdf.xacro')
     robot_description = xacro.process_file(
-        xacro_file, mappings={'namespace': namespace, 'color': color}).toxml()
+        xacro_file, mappings={'namespace': namespace, 'color': color, 'gripper': gripper}).toxml()
 
     # frame_prefix: "leader/" adds the robot name to every TF frame of the robot.
     # One robot: no prefix, frames stay "base_link", "wheel_0_link", ...
@@ -78,5 +80,9 @@ def generate_launch_description():
             'color',
             default_value='white',
             description='Chassis color (a material of properties.xacro: white, red, blue, ...)'),
+        DeclareLaunchArgument(
+            'gripper',
+            default_value='false',
+            description='Mount the V-shaped soft gripper (Step 7)'),
         OpaqueFunction(function=launch_setup),
     ])

@@ -34,6 +34,7 @@ Parameters:
   q_weight, r_weight Q = q_weight I, R = r_weight I (Table 1)                  0.1, 0.8
   max_linear_speed   [m/s]                                                     0.3
   max_angular_speed  [rad/s]                                                   1.0
+                     (both can be changed while running: ros2 param set ...)
   start_with_goal    true: use goal_x/goal_y/goal_yaw as first goal            false
   goal_x, goal_y, goal_yaw   first goal [m, m, rad]                            0, 0, 0
   position_tolerance, yaw_tolerance  only to print "goal reached" [m, rad]     0.01, 0.02
@@ -52,6 +53,7 @@ import math
 import rclpy
 from geometry_msgs.msg import PoseStamped, Twist, Vector3Stamped
 from nav_msgs.msg import Odometry
+from rcl_interfaces.msg import SetParametersResult
 from rclpy.node import Node
 
 from caging_control.core.geometry import global_to_robot, pose_error, yaw_from_quaternion
@@ -109,6 +111,20 @@ class LqrController(Node):
         self.create_timer(self.Ts, self.control_step)
         self.create_timer(1.0, self.print_status)   # human-readable log every 1 s
         self.last_error = None
+
+        # The speed limits may change while the node runs (Step 7: slow closing),
+        # e.g.  ros2 param set /leader/lqr_controller max_linear_speed 0.05
+        self.add_on_set_parameters_callback(self.parameters_callback)
+
+    def parameters_callback(self, parameters):
+        for parameter in parameters:
+            if parameter.name == 'max_linear_speed':
+                self.max_linear = parameter.value
+                self.get_logger().info(f'max_linear_speed = {self.max_linear} m/s')
+            elif parameter.name == 'max_angular_speed':
+                self.max_angular = parameter.value
+                self.get_logger().info(f'max_angular_speed = {self.max_angular} rad/s')
+        return SetParametersResult(successful=True)
 
     # ------------------------------------------------------------------ inputs
     def pose_callback(self, msg):

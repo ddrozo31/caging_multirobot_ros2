@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<!--
+  Simplified soft gripper (Step 7, paper §2.1.2).
+
+  The paper uses Fin-Ray fingers made of soft TPU: they bend when they touch
+  the object and spring back. We model each finger as a RIGID bar on a hinge
+  with a SPRING and a DAMPER: when the object pushes the finger, it rotates a
+  little (like the soft finger bends), and the spring brings it back.
+
+  (Contact stiffness kp/kd on the surface would be simpler, but the default
+  physics engine of Gazebo Harmonic, DART, ignores it: tested in Step 7.)
+
+  Top view (robot frame: X forward, Y left):
+
+                         finger_left  (60 deg from X)
+                       /
+      [ chassis ]=== o  <- apex = hinges, at x = l_g = 0.12 m (chassis front)
+                       \
+                         finger_right (-60 deg from X)
+
+  The two fingers make a V of 120 deg that opens towards the object.
+  Finger length 0.16 m: tips at x = 0.20 m, y = +-0.139 m.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- ============================================================ -->
+    <!--  Parameters (meters, kilograms, radians)                      -->
+    <!-- ============================================================ -->
+    <xacro:property name="gripper_x"        value="0.12"/>   <!-- apex: l_g of Table 1 -->
+    <xacro:property name="finger_angle"     value="${pi/3}"/> <!-- 60 deg: V opening = 120 deg -->
+    <xacro:property name="finger_length"    value="0.16"/>
+    <xacro:property name="finger_thickness" value="0.01"/>
+    <xacro:property name="finger_height"    value="0.06"/>   <!-- same band as the chassis -->
+    <xacro:property name="finger_z"         value="0.06"/>   <!-- height of the finger center -->
+    <xacro:property name="finger_mass"      value="0.02"/>
+    <!-- Soft behavior: rotational spring and damper of each hinge.
+         Tip deflection = F L^2 / k: with k = 3.2 N m/rad, a 2 N push at the tip
+         bends the tip 1.6 cm, similar to the 15.8 mm of the paper's FEA (Fig. 4). -->
+    <xacro:property name="finger_stiffness" value="3.2"/>    <!-- [N m / rad] -->
+    <xacro:property name="finger_damping"   value="0.05"/>   <!-- [N m s / rad] -->
+    <xacro:property name="finger_travel"    value="0.35"/>   <!-- max hinge rotation [rad] (20 deg) -->
+
+    <!-- One finger. side = left (+1) or right (-1) -->
+    <xacro:macro name="finger" params="side sign">
+        <joint name="finger_${side}_joint" type="revolute">
+            <parent link="chassis_link"/>
+            <child link="finger_${side}_link"/>
+            <!-- chassis_link is 0.06 m above base_link, so z = finger_z - chassis_z = 0 -->
+            <origin xyz="${gripper_x} ${sign * finger_thickness / 2} ${finger_z - 0.06}"
+                    rpy="0 0 ${sign * finger_angle}"/>
+            <axis xyz="0 0 1"/>
+            <limit lower="${-finger_travel}" upper="${finger_travel}" effort="10" velocity="10"/>
+            <dynamics damping="${finger_damping}"/>
+        </joint>
+
+        <link name="finger_${side}_link">
+            <!-- The finger frame starts at the hinge; the bar goes along its X axis -->
+            <visual>
+                <origin xyz="${finger_length / 2} 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="${finger_length} ${finger_thickness} ${finger_height}"/>
+                </geometry>
+                <material name="orange"/>
+            </visual>
+            <collision>
+                <origin xyz="${finger_length / 2} 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="${finger_length} ${finger_thickness} ${finger_height}"/>
+                </geometry>
+            </collision>
+            <xacro:inertial_box mass="${finger_mass}" x="${finger_length}" y="${finger_thickness}" z="${finger_height}">
+                <origin xyz="${finger_length / 2} 0 0" rpy="0 0 0"/>
+            </xacro:inertial_box>
+        </link>
+
+        <!-- Spring of the hinge: URDF has no spring, so it is a Gazebo setting -->
+        <gazebo reference="finger_${side}_joint">
+            <springStiffness>${finger_stiffness}</springStiffness>
+            <springReference>0.0</springReference>   <!-- rest angle: the V of 120 deg -->
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:finger side="left"  sign="1"/>
+    <xacro:finger side="right" sign="-1"/>
+
+</robot>
