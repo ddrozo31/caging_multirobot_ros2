@@ -27,6 +27,7 @@ setup(
             'odom_error_monitor = caging_control.nodes.odom_error_monitor:main',
             'lqr_controller = caging_control.nodes.lqr_controller:main',
             'object_marker = caging_control.nodes.object_marker:main',
+            'approach_manager = caging_control.nodes.approach_manager:main',
         ],
     },
 )

@@ -1,0 +1,26 @@
+# Object approach with A* (Step 6, paper §2.3, Fig. 7, Eq. 13).
+#
+#   /start_approach (service) -> approach_manager -> /leader/goal_pose, /follower/goal_pose
+#                                                     (waypoints for the LQR of Step 4)
+/**/approach_manager:
+  ros__parameters:
+    # --- Eq. 13: d_a = 2 r_O + l_g = 0.42 m ---
+    object_radius: 0.15      # r_O [m] (Table 1; the same value for the three objects)
+    gripper_distance: 0.12   # l_g [m] (Table 1): robot center -> gripper center
+
+    # --- Obstacles (inflation): the robot is a circle around its chassis ---
+    robot_radius: 0.155      # sqrt(0.119^2 + 0.10^2): half length and half width [m]
+    safety_margin: 0.05      # [m]  object -> 0.15 + 0.155 + 0.05 = 0.355 m (< d_a, so q* is free)
+                             #      other robot -> 0.155 + 0.155 + 0.05 = 0.36 m
+
+    # --- Grid: the Vicon area of the paper (3 m x 6 m) ---
+    resolution: 0.05         # cell size [m] -> 60 x 120 cells
+    x_min: -1.5
+    x_max: 1.5
+    y_min: -3.0
+    y_max: 3.0
+
+    # --- Path following ---
+    waypoint_tolerance: 0.10 # go to the next corner when closer than this [m]
+    position_tolerance: 0.01 # approach pose reached [m]  (same as the LQR "goal reached")
+    yaw_tolerance: 0.02      # [rad]

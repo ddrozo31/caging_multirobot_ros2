@@ -22,6 +22,7 @@ Run:
   ros2 launch caging_bringup two_robots.launch.py object:=hemisphere
   ros2 launch caging_bringup two_robots.launch.py object:=pyramid
   ros2 launch caging_bringup two_robots.launch.py object:=none
+  ros2 launch caging_bringup two_robots.launch.py object_yaw:=1.5708   # object rotated (Step 6)
 """
 import os
 
@@ -37,7 +38,7 @@ ROBOTS = {
     'leader':   {'pose': (0.5, -2.5, 1.5708), 'joy_device': '0', 'color': 'red'},
     'follower': {'pose': (-0.5, -2.5, 1.5708), 'joy_device': '1', 'color': 'blue'},
 }
-OBJECT_POSE = (0.0, 0.0, 3.1416)
+OBJECT_XY = (0.0, 0.0)   # q_O = [0, 0, pi]; the yaw is the launch argument object_yaw
 
 
 def launch_setup(context):
@@ -48,6 +49,7 @@ def launch_setup(context):
     object_name = LaunchConfiguration('object').perform(context)
     rviz = LaunchConfiguration('rviz').perform(context)
     world = LaunchConfiguration('world').perform(context)
+    object_yaw = LaunchConfiguration('object_yaw').perform(context)
 
     # --- 1. World: Gazebo + bridge + RViz ---
     actions = [IncludeLaunchDescription(
@@ -86,7 +88,8 @@ def launch_setup(context):
 
     # --- 4. The object, named "object" in Gazebo (topics /model/object/...) ---
     if object_name != 'none':
-        x, y, yaw = OBJECT_POSE
+        x, y = OBJECT_XY
+        yaw = object_yaw
         actions.append(Node(
             package='ros_gz_sim',
             executable='create',
@@ -112,6 +115,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('object', default_value='box',
                               description='box, hemisphere, pyramid or none'),
+        DeclareLaunchArgument('object_yaw', default_value='3.1416',
+                              description='Object orientation theta_O [rad] (Table 1: pi)'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),
         DeclareLaunchArgument(
             'world',

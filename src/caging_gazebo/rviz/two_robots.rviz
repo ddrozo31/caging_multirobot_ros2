@@ -216,6 +216,61 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
       Value: true
+    - Class: rviz_default_plugins/Map
+      Name: A* grid (inflated obstacles, Step 6)
+      Enabled: true
+      Topic:
+        Value: /approach/grid
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Color Scheme: map
+      Alpha: 0.4
+      Draw Behind: true
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Leader A* path (Step 6)
+      Enabled: true
+      Topic:
+        Value: /leader/planned_path
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Lines
+      Color: 255; 60; 60
+      Alpha: 1
+      Pose Style: None
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Follower A* path (Step 6)
+      Enabled: true
+      Topic:
+        Value: /follower/planned_path
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Lines
+      Color: 60; 120; 255
+      Alpha: 1
+      Pose Style: None
+      Value: true
+    - Class: rviz_default_plugins/PoseArray
+      Name: Approach poses q_L* q_F* (Step 6)
+      Enabled: true
+      Topic:
+        Value: /approach/poses
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Shape: Arrow (Flat)
+      Color: 0; 255; 255
+      Alpha: 1
+      Arrow Length: 0.3
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
