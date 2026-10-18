@@ -217,7 +217,7 @@ publishing, the robot keeps moving: always send a zero twist to stop (see exerci
 5. Add a safety **timeout**: if no command arrives for 0.5 s, `update()` must use a zero
    twist. (Hint: store the time of the last message together with the twist.)
    *The project adds this timeout in Step 5 (`cmd_timeout`); try your own solution first, then
-   compare it with [step_05_two_robots.md](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docs/steps/step_05_two_robots.md), theory section 9.*
+   compare it with [step_05_two_robots.md](step_05_two_robots.md), theory section 9.*
 6. `wheel_radius`, `lx` and `ly` are written twice (xacro and YAML). What could go wrong?
    Propose a way to keep a single source.
    *Solved in Step 12: the controller reads them from the URDF. Propose your own solution first,

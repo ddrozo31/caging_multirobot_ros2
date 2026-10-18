@@ -24,11 +24,15 @@ controller_interface::CallbackReturn MecanumController::on_init()
   node->declare_parameter<double>("wheel_radius", 0.0325);  // r_w [m]
   node->declare_parameter<double>("lx", 0.080);             // l_x [m]
   node->declare_parameter<double>("ly", 0.0845);            // l_y [m]
+  // Safety (Step 5): stop the robot if no command arrives for this time [s]
+  node->declare_parameter<double>("cmd_timeout", 0.5);
 
   // Wheel odometry (Step 3)
   node->declare_parameter<std::string>("odom_frame", "odom");
   node->declare_parameter<std::string>("base_frame", "base_link");
   node->declare_parameter<bool>("publish_tf", true);
+  // Several robots (Step 5): add the namespace to the frame names (leader/odom, leader/base_link)
+  node->declare_parameter<bool>("tf_frame_prefix_enable", true);
   node->declare_parameter<double>("odom_noise_stddev", 0.0);   // [rad/s], 0 = no noise
   node->declare_parameter<double>("odom_radius_scale", 1.0);   // 1 = no systematic error
   return controller_interface::CallbackReturn::SUCCESS;
@@ -83,7 +87,12 @@ controller_interface::CallbackReturn MecanumController::on_configure(const rclcp
   // The callback only stores the message; the math happens in update().
   cmd_sub_ = node->create_subscription<geometry_msgs::msg::Twist>(
     "~/cmd_vel", rclcpp::SystemDefaultsQoS(),
-    [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmd_box_.set(*msg); });
+    [this](const geometry_msgs::msg::Twist::SharedPtr msg) {
+      commands_received_++;
+      cmd_box_.set(NumberedCommand{*msg, commands_received_});
+    });
+  cmd_timeout_ = node->get_parameter("cmd_timeout").as_double();
+  RCLCPP_INFO(node->get_logger(), "Command timeout = %.2f s", cmd_timeout_);
 
   // --- Publisher: measured body twist on ~/body_twist  (=> /mecanum_controller/body_twist) ---
   body_twist_pub_ = node->create_publisher<geometry_msgs::msg::Twist>("~/body_twist", rclcpp::SystemDefaultsQoS());
@@ -93,6 +102,19 @@ controller_interface::CallbackReturn MecanumController::on_configure(const rclcp
   // --- Wheel odometry (Step 3) ---
   odom_frame_ = node->get_parameter("odom_frame").as_string();
   base_frame_ = node->get_parameter("base_frame").as_string();
+
+  // Frame prefix (Step 5). get_namespace() is "/" for one robot and "/leader" for the leader.
+  // Python equivalent:
+  //   ns = node.get_namespace().strip('/')           # "" or "leader"
+  //   if ns: odom_frame = ns + '/' + odom_frame      # "leader/odom"
+  // This is the same convention as robot_state_publisher's frame_prefix ("leader/").
+  std::string ns = node->get_namespace();
+  if (node->get_parameter("tf_frame_prefix_enable").as_bool() && ns != "/") {
+    std::string prefix = ns.substr(1) + "/";   // "/leader" -> "leader/"
+    odom_frame_ = prefix + odom_frame_;
+    base_frame_ = prefix + base_frame_;
+  }
+  RCLCPP_INFO(node->get_logger(), "Odometry frames: %s -> %s", odom_frame_.c_str(), base_frame_.c_str());
   publish_tf_ = node->get_parameter("publish_tf").as_bool();
   odom_noise_stddev_ = node->get_parameter("odom_noise_stddev").as_double();
   odom_radius_scale_ = node->get_parameter("odom_radius_scale").as_double();
@@ -121,7 +143,7 @@ controller_interface::CallbackReturn MecanumController::on_configure(const rclcp
 controller_interface::CallbackReturn MecanumController::on_activate(const rclcpp_lifecycle::State &)
 {
   last_cmd_ = geometry_msgs::msg::Twist();  // all zeros
-  cmd_box_.set(last_cmd_);
+  has_cmd_time_ = false;                    // no command yet: the robot stays still
 
   // The odometry starts at the origin of the odom frame
   odom_x_ = 0.0;
@@ -151,12 +173,30 @@ controller_interface::return_type MecanumController::update(
   // 1) Get the newest command (if the box is busy, keep the last one)
   // ---------------------------------------------------------------
   const auto new_cmd = cmd_box_.try_get();
-  if (new_cmd.has_value()) {
-    last_cmd_ = new_cmd.value();
+  if (new_cmd.has_value() && new_cmd->number != last_cmd_number_) {
+    last_cmd_ = new_cmd->twist;          // a NEW command arrived
+    last_cmd_number_ = new_cmd->number;
+    last_cmd_time_ = time;
+    has_cmd_time_ = true;
   }
-  const double vx = last_cmd_.linear.x;   // x_dot_R  : forward velocity  [m/s]
-  const double vy = last_cmd_.linear.y;   // y_dot_R  : lateral velocity  [m/s]
-  const double wz = last_cmd_.angular.z;  // theta_dot: angular velocity  [rad/s]
+  double vx = last_cmd_.linear.x;   // x_dot_R  : forward velocity  [m/s]
+  double vy = last_cmd_.linear.y;   // y_dot_R  : lateral velocity  [m/s]
+  double wz = last_cmd_.angular.z;  // theta_dot: angular velocity  [rad/s]
+
+  // Timeout (Step 5): one late message is fine (the last command is kept), but if
+  // commands stop for longer than cmd_timeout_ (crashed node, lost connection) the
+  // robot must stop instead of driving on with an old command.
+  //   Python equivalent:  if now - last_cmd_time > cmd_timeout: vx = vy = wz = 0
+  if (!has_cmd_time_ || (time - last_cmd_time_).seconds() > cmd_timeout_) {
+    if (has_cmd_time_ && (vx != 0.0 || vy != 0.0 || wz != 0.0)) {
+      RCLCPP_WARN_THROTTLE(
+        get_node()->get_logger(), *get_node()->get_clock(), 2000,
+        "No command for more than %.2f s: stopping the robot", cmd_timeout_);
+    }
+    vx = 0.0;
+    vy = 0.0;
+    wz = 0.0;
+  }
 
   // ---------------------------------------------------------------
   // 2) INVERSE kinematics (inverse of Eq. 1): body twist -> wheel speeds [rad/s]

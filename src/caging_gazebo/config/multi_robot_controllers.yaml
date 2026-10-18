@@ -1,0 +1,11 @@
+# Extra controller parameters for SEVERAL robots (Step 5), loaded by the spawner
+# in spawn_robot.launch.py on top of caging_description/config/ros2_controllers.yaml.
+#
+# As in the paper, the robots are placed by the "Vicon" (Gazebo ground truth):
+# Gazebo publishes the TF  world -> <robot>/base_link.  A frame can have only ONE
+# parent in TF, so the wheel odometry must NOT publish  <robot>/odom -> <robot>/base_link.
+# The odometry is still computed and published on <robot>/mecanum_controller/odom
+# (red arrows in RViz), as an example of what a robot without Vicon would know.
+/**/mecanum_controller:
+  ros__parameters:
+    publish_tf: false

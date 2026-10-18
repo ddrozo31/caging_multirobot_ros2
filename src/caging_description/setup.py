@@ -19,12 +19,15 @@ setup(
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/rviz', glob('rviz/*.rviz')),
         ('share/' + package_name + '/config', glob('config/*.yaml')),
+        # Objects of the paper (Step 5): SDF models and their meshes
+        ('share/' + package_name + '/objects', glob('objects/*.sdf')),
+        ('share/' + package_name + '/meshes', glob('meshes/*.stl')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='David Rozo-Osorio',
     maintainer_email='david.rozo31@eia.edu.co',
-    description='Robot model (URDF/xacro) of the Yahboom ROSMASTER X3 used in the caging workshop.',
+    description='Robot model (URDF/xacro) of the Yahboom ROSMASTER X3 and the objects of the caging workshop.',
     license='Apache-2.0',
     entry_points={
         'console_scripts': [],

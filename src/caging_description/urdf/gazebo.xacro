@@ -40,13 +40,21 @@
     <gazebo>
         <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
             <parameters>$(find caging_description)/config/ros2_controllers.yaml</parameters>
+            <!-- Step 5: with a namespace, the controller_manager and the controllers live
+                 under it (/leader/controller_manager, /leader/mecanum_controller/cmd_vel, ...) -->
+            <xacro:if value="${namespace != ''}">
+                <ros>
+                    <namespace>/${namespace}</namespace>
+                </ros>
+            </xacro:if>
         </plugin>
     </gazebo>
 
     <!--
       VelocityControl: moves the whole robot with a body twist (vx, vy, wz),
       expressed in the robot frame (base_link).
-      It listens on the Gazebo topic /model/<model name>/cmd_vel.
+      It listens on the Gazebo topic /model/<model name>/cmd_vel
+      (<model name> = the -name given when spawning: rosmaster_x3, leader, follower).
       Our MecanumController computes that twist from the wheel speeds (forward Eq. 1)
       and the bridge (caging_gazebo/config/topic_bridge.yaml) sends it here.
     -->
@@ -59,13 +67,23 @@
       It reads the TRUE pose of the robot from the simulator (no errors) and publishes:
         - /model/<model name>/odometry  (gz.msgs.Odometry)  -> bridged to /ground_truth/odom
         - /model/<model name>/pose      (gz.msgs.Pose_V)    -> bridged to /tf
-      as the transform  world -> ground_truth.
+      as the transform  world -> ground_truth  (several robots: world -> leader/base_link).
       dimensions = 2: planar robot (x, y, yaw).
     -->
     <gazebo>
         <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
             <odom_frame>world</odom_frame>
-            <robot_base_frame>ground_truth</robot_base_frame>
+            <!-- One robot (Steps 1-4): frame "ground_truth"; the robot model in RViz follows
+                 the wheel odometry, to show its drift (Step 3).
+                 Several robots (Step 5+, the paper): frame "leader/base_link", so the robot
+                 model follows the ground truth = Vicon (the odometry TF is switched off,
+                 see caging_gazebo/config/multi_robot_controllers.yaml). -->
+            <xacro:if value="${namespace == ''}">
+                <robot_base_frame>ground_truth</robot_base_frame>
+            </xacro:if>
+            <xacro:unless value="${namespace == ''}">
+                <robot_base_frame>${namespace}/base_link</robot_base_frame>
+            </xacro:unless>
             <odom_publish_frequency>100</odom_publish_frequency>
             <dimensions>2</dimensions>
         </plugin>

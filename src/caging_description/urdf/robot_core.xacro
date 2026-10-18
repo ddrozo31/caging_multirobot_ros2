@@ -69,15 +69,16 @@
             <geometry>
                 <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
             </geometry>
-            <material name="white"/>
+            <material name="${body_color}"/>   <!-- xacro argument "color" (robot.urdf.xacro) -->
         </visual>
-        <!-- Red marker on the front, so we can see where the robot is looking (+X) -->
+        <!-- Yellow marker on the front, so we can see where the robot is looking (+X).
+             (Yellow, not red: it must be visible on a red robot too.) -->
         <visual>
             <origin xyz="${chassis_length/2 - 0.02} 0 ${chassis_height/2 + 0.005}" rpy="0 0 0"/>
             <geometry>
                 <box size="0.04 0.04 0.01"/>
             </geometry>
-            <material name="red"/>
+            <material name="yellow"/>
         </visual>
         <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>

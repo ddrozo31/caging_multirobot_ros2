@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'odom_error_monitor = caging_control.nodes.odom_error_monitor:main',
             'lqr_controller = caging_control.nodes.lqr_controller:main',
+            'object_marker = caging_control.nodes.object_marker:main',
         ],
     },
 )

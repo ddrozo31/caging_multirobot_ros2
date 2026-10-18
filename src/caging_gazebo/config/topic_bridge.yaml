@@ -43,3 +43,61 @@
   ros_type_name: "tf2_msgs/msg/TFMessage"
   gz_type_name: "gz.msgs.Pose_V"
   direction: GZ_TO_ROS
+
+# ============================================================================
+# Step 5: two robots (namespaces /leader and /follower) and the object.
+# Same three entries per robot as above, with the robot name in both topic
+# names (Gazebo model name = ROS namespace). The entries above (model
+# "rosmaster_x3") are still used by the one-robot sim.launch.py of Steps 1-4.
+# ============================================================================
+
+# --- Leader ---
+- ros_topic_name: "/leader/mecanum_controller/body_twist"
+  gz_topic_name: "/model/leader/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+- ros_topic_name: "/leader/ground_truth/odom"
+  gz_topic_name: "/model/leader/odometry"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/tf"                          # world -> leader/ground_truth
+  gz_topic_name: "/model/leader/pose"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+
+# --- Follower ---
+- ros_topic_name: "/follower/mecanum_controller/body_twist"
+  gz_topic_name: "/model/follower/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+- ros_topic_name: "/follower/ground_truth/odom"
+  gz_topic_name: "/model/follower/odometry"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/tf"                          # world -> follower/ground_truth
+  gz_topic_name: "/model/follower/pose"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+
+# --- Object (box, hemisphere or pyramid; Gazebo model name "object") ---
+- ros_topic_name: "/object/ground_truth/odom"
+  gz_topic_name: "/model/object/odometry"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/tf"                          # world -> object
+  gz_topic_name: "/model/object/pose"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS

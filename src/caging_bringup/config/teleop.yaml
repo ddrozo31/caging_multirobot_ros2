@@ -6,17 +6,21 @@
 #
 # All messages are geometry_msgs/msg/Twist (NOT TwistStamped), because our
 # MecanumController subscribes to Twist.
+#
+# "/**/" before each node name (Step 5): the same settings apply to the node in ANY
+# namespace (/twist_mux, /leader/twist_mux, /follower/twist_mux). A plain "twist_mux:"
+# key would be ignored by a node inside a namespace.
 
 # --- Reads the joystick and publishes /joy (sensor_msgs/msg/Joy) ---
-joy_node:
+/**/joy_node:
   ros__parameters:
-    device_id: 0           # first joystick (/dev/input/js0)
+    device_id: 0           # first joystick (/dev/input/js0); teleop.launch.py can change it
     deadzone: 0.05         # ignore tiny stick movements around the center
     autorepeat_rate: 20.0  # Hz: re-publish /joy even if nothing changes
 
 # --- Converts /joy into a Twist for a MECANUM robot ---
 # Axis numbers depend on the controller: check them with  ros2 topic echo /joy
-teleop_node:
+/**/teleop_node:
   ros__parameters:
     axis_linear:
       x: 1     # left stick, up/down     -> forward / backward   (x_dot_R)
@@ -43,7 +47,7 @@ teleop_node:
 # --- Chooses ONE command among several sources ---
 # The source with the highest priority wins. A source that has not published
 # for "timeout" seconds is ignored, so a lower-priority source can take over.
-twist_mux:
+/**/twist_mux:
   ros__parameters:
     use_stamped: false   # Twist, not TwistStamped
     topics:

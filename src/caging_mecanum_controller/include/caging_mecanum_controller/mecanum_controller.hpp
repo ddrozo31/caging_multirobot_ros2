@@ -62,11 +62,26 @@ private:
   double ly_ = 0.0;                        // l_y
 
   // ---- Command input: topic ~/cmd_vel ----
+  // Each received command gets a number (1, 2, 3, ...), so update() can tell a NEW
+  // command from the old one still stored in the box (needed for the timeout).
+  struct NumberedCommand
+  {
+    geometry_msgs::msg::Twist twist = geometry_msgs::msg::Twist();
+    uint64_t number = 0;
+  };
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_sub_;
+  uint64_t commands_received_ = 0;         // counter, used only by the subscriber callback
   // The subscriber callback and update() run in DIFFERENT threads.
   // This "box" lets them share the last command safely.
-  realtime_tools::RealtimeThreadSafeBox<geometry_msgs::msg::Twist> cmd_box_;
+  realtime_tools::RealtimeThreadSafeBox<NumberedCommand> cmd_box_;
   geometry_msgs::msg::Twist last_cmd_;     // last command used by update()
+
+  // ---- Command timeout (Step 5) ----
+  // If no new command arrives for cmd_timeout_ seconds, the robot stops.
+  double cmd_timeout_ = 0.5;               // [s]
+  uint64_t last_cmd_number_ = 0;           // number of the last command used
+  rclcpp::Time last_cmd_time_;             // when update() got it (simulation clock)
+  bool has_cmd_time_ = false;              // false until the first command arrives
 
   // ---- Feedback output: topic ~/body_twist ----
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr body_twist_pub_;

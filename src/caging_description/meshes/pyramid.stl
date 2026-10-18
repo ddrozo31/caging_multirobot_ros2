@@ -1,0 +1,30 @@
+solid pyramid
+  facet normal -0.000000 0.000000 -1.000000
+    outer loop
+      vertex 0.086603 0.000000 0.000000
+      vertex -0.043301 -0.075000 0.000000
+      vertex -0.043301 0.075000 0.000000
+    endloop
+  endfacet
+  facet normal 0.480384 0.832050 0.277350
+    outer loop
+      vertex 0.086603 0.000000 0.000000
+      vertex -0.043301 0.075000 0.000000
+      vertex 0.000000 0.000000 0.150000
+    endloop
+  endfacet
+  facet normal -0.960769 0.000000 0.277350
+    outer loop
+      vertex -0.043301 0.075000 0.000000
+      vertex -0.043301 -0.075000 0.000000
+      vertex 0.000000 0.000000 0.150000
+    endloop
+  endfacet
+  facet normal 0.480384 -0.832050 0.277350
+    outer loop
+      vertex -0.043301 -0.075000 0.000000
+      vertex 0.086603 0.000000 0.000000
+      vertex 0.000000 0.000000 0.150000
+    endloop
+  endfacet
+endsolid pyramid

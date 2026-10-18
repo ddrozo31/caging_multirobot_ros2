@@ -1,12 +1,13 @@
 # LQR pose controller (Step 4, paper §2.2, Eq. 7-12).
 #
-#   /ground_truth/odom ─┐
-#                       ├─> lqr_controller -> /cmd_vel_nav -> twist_mux -> /mecanum_controller/cmd_vel
-#   /goal_pose ─────────┘                    (priority 10: joystick and keyboard win)
+#   ground_truth/odom ─┐   (relative names: /leader/ground_truth/odom in namespace /leader)
+#                      ├─> lqr_controller -> cmd_vel_nav -> twist_mux -> mecanum_controller/cmd_vel
+#   goal_pose ─────────┘                    (priority 10: joystick and keyboard win)
 #
 # The goal (start_with_goal, goal_x, goal_y, goal_yaw) is given by lqr.launch.py arguments
 # or with RViz "2D Goal Pose", so it is not in this file.
-lqr_controller:
+# "/**/": the same tuning for the node in any namespace (/leader/lqr_controller, ...)
+/**/lqr_controller:
   ros__parameters:
     sample_time: 0.05        # Ts [s] (20 Hz). Not given in the paper: our choice
     q_weight: 0.1            # Q = 0.1 I  (Table 1): weight of the pose error

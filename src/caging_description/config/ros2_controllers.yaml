@@ -1,7 +1,12 @@
 # ros2_control configuration: which controllers exist and their parameters.
 # Loaded by the gz_ros2_control plugin (see urdf/gazebo.xacro).
+#
+# Why "/**/" before each node name (Step 5)?  A key like "mecanum_controller:" only
+# matches a node WITHOUT namespace. "/**/mecanum_controller:" matches it in ANY namespace
+# (/mecanum_controller, /leader/mecanum_controller, /follower/mecanum_controller),
+# so the same file works for one robot and for several.
 
-controller_manager:
+/**/controller_manager:
   ros__parameters:
     update_rate: 100  # Hz: how many times per second update() of each controller runs
 
@@ -13,7 +18,7 @@ controller_manager:
     mecanum_controller:
       type: caging_mecanum_controller/MecanumController
 
-mecanum_controller:
+/**/mecanum_controller:
   ros__parameters:
     # Order = wheel index i of Eq. 1 (Fig. 6): front-left, front-right, rear-left, rear-right
     wheel_joints:
@@ -25,10 +30,15 @@ mecanum_controller:
     wheel_radius: 0.0325  # r_w [m]
     lx: 0.080             # l_x [m]
     ly: 0.0845            # l_y [m]
+    # Safety (Step 5): no new command for this long [s] -> the robot stops.
+    # 0.5 s = 10 LQR cycles: one late message does not stop the robot, a dead node does.
+    cmd_timeout: 0.5
 
     # --- Wheel odometry (Step 3) ---
     odom_frame: odom      # TF: odom -> base_link
     base_frame: base_link
+    # Step 5: in a namespace the frames get its name as prefix: leader/odom -> leader/base_link
+    tf_frame_prefix_enable: true
     publish_tf: true
     # Errors added ONLY to the odometry (the real motion of the robot is not affected).
     # Start with 0.0 / 1.0 (perfect), then try e.g. 0.5 / 1.02 and watch it drift.

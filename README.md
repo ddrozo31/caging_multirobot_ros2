@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 4
+# caging_multirobot_ros2: the project after Step 5
 
-This commit (tag `step-04`) is the project as it was at the end of
-**Step 4: LQR pose controller for one robot**. The guides are their final version; the code in `src/` is the
+This commit (tag `step-05`) is the project as it was at the end of
+**Step 5: two robots and the objects**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -16,6 +16,7 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 - [Step 3 — Pose Feedback: Ground Truth ("Virtual Vicon") and Wheel Odometry](docs/steps/step_03_pose_feedback.md)
 - [Step 4 — LQR Pose Controller for One Robot](docs/steps/step_04_lqr_controller.md)
 - [Step 4 (companion) — The Math of LQR, Step by Step](docs/steps/step_04_lqr_math.md)
+- [Step 5 — Two Robots and the Objects](docs/steps/step_05_two_robots.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 

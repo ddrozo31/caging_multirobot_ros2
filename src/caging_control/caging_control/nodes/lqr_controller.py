@@ -17,13 +17,17 @@ Every Ts seconds:
 Steps 3 + 5 + 6 together are mu = B(theta)^-1 v (Eq. 7): the rotation is done
 here, the inverse Jacobian J_R^-1 inside our C++ controller.
 
+Topic names are RELATIVE (no "/" at the start), so they follow the namespace of the
+node: with one robot "ground_truth/odom" is /ground_truth/odom; in namespace /leader it is
+/leader/ground_truth/odom (Step 5).
+
 Subscribes:
-  /ground_truth/odom  (nav_msgs/Odometry)        pose of the robot in "world"
-  /goal_pose          (geometry_msgs/PoseStamped) new goal, e.g. RViz "2D Goal Pose"
+  ground_truth/odom  (nav_msgs/Odometry)        pose of the robot in "world"
+  goal_pose          (geometry_msgs/PoseStamped) new goal, e.g. RViz "2D Goal Pose"
 Publishes:
-  /cmd_vel_nav  (geometry_msgs/Twist)            body twist (priority 10 in twist_mux,
-                                                 so joystick and keyboard can override)
-  /lqr_error    (geometry_msgs/Vector3Stamped)   goal - pose: x = ex, y = ey [m], z = etheta [rad]
+  cmd_vel_nav  (geometry_msgs/Twist)            body twist (priority 10 in twist_mux,
+                                                so joystick and keyboard can override)
+  lqr_error    (geometry_msgs/Vector3Stamped)   goal - pose: x = ex, y = ey [m], z = etheta [rad]
 
 Parameters:
   sample_time        Ts [s] of the controller (the paper does not give it)    0.05
@@ -36,6 +40,7 @@ Parameters:
 
 Run:
   ros2 run caging_control lqr_controller --ros-args -p use_sim_time:=true
+  ros2 run caging_control lqr_controller --ros-args -p use_sim_time:=true -r __ns:=/leader
   ros2 run caging_control lqr_controller --ros-args -p use_sim_time:=true \
     -p start_with_goal:=true -p goal_x:=1.0 -p goal_y:=0.5 -p goal_yaw:=0.0
 Send a goal by hand:
@@ -95,12 +100,12 @@ class LqrController(Node):
                            self.get_parameter('goal_yaw').value))
 
         # --- Subscribers ---
-        self.create_subscription(Odometry, '/ground_truth/odom', self.pose_callback, 10)
-        self.create_subscription(PoseStamped, '/goal_pose', self.goal_callback, 10)
+        self.create_subscription(Odometry, 'ground_truth/odom', self.pose_callback, 10)
+        self.create_subscription(PoseStamped, 'goal_pose', self.goal_callback, 10)
 
         # --- Publishers and the control timer (one tick every Ts) ---
-        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel_nav', 10)
-        self.error_pub = self.create_publisher(Vector3Stamped, '/lqr_error', 10)
+        self.cmd_pub = self.create_publisher(Twist, 'cmd_vel_nav', 10)
+        self.error_pub = self.create_publisher(Vector3Stamped, 'lqr_error', 10)
         self.create_timer(self.Ts, self.control_step)
         self.create_timer(1.0, self.print_status)   # human-readable log every 1 s
         self.last_error = None
@@ -171,9 +176,9 @@ class LqrController(Node):
 
     def print_status(self):
         if self.pose is None:
-            self.get_logger().info('Waiting for /ground_truth/odom ...')
+            self.get_logger().info('Waiting for ground_truth/odom ...')
         elif self.goal is None:
-            self.get_logger().info('Waiting for a goal on /goal_pose (RViz "2D Goal Pose") ...')
+            self.get_logger().info('Waiting for a goal on goal_pose (RViz "2D Goal Pose") ...')
         elif self.last_error is not None and not self.goal_reached:
             ex, ey, etheta, distance = self.last_error
             self.get_logger().info(
