@@ -1,0 +1,18 @@
+# Leader-Follower controller of the follower (Step 8, paper §2.4, Eq. 14-25, Table 1).
+#
+#   /leader/ground_truth/odom, /follower/ground_truth/odom, /leader/mecanum_controller/cmd_vel
+#       -> leader_follower -> /follower/cmd_vel_nav
+/**/leader_follower:
+  ros__parameters:
+    active: false            # switched on by approach_manager after /object_closed
+    k_d: 2.0                 # Table 1: e_d decays as exp(-2 t)   (time constant 0.5 s)
+    k_alpha: 1.0             # Table 1
+    k_thf: 1.0               # Table 1
+    use_measured_distance: true   # d* = d at the closure (0.526 m with the corner grasp)
+    distance_ref: 0.52       # d* of Table 1, used if use_measured_distance is false
+    alpha_ref: 0.0           # the follower looks at the leader
+    sample_time: 0.05        # [s] 20 Hz, like the LQR
+    max_linear_speed: 0.3    # [m/s]   limits of u_F
+    max_angular_speed: 1.0   # [rad/s]
+    leader_cmd_timeout: 0.5  # [s] older leader command -> u_L = 0
+    pose_timeout: 0.5        # [s] older ground truth -> stop publishing

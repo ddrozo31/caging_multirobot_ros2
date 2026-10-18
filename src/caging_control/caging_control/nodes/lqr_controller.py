@@ -38,6 +38,7 @@ Parameters:
   start_with_goal    true: use goal_x/goal_y/goal_yaw as first goal            false
   goal_x, goal_y, goal_yaw   first goal [m, m, rad]                            0, 0, 0
   position_tolerance, yaw_tolerance  only to print "goal reached" [m, rad]     0.01, 0.02
+  active             false: publish nothing (Step 8, follower in formation)    true
 
 Run:
   ros2 run caging_control lqr_controller --ros-args -p use_sim_time:=true
@@ -77,6 +78,10 @@ class LqrController(Node):
         self.declare_parameter('goal_yaw', 0.0)
         self.declare_parameter('position_tolerance', 0.01)
         self.declare_parameter('yaw_tolerance', 0.02)
+        # Step 8: false = the node stops publishing (the follower is then driven by the
+        # Leader-Follower controller). Can be changed while running.
+        self.declare_parameter('active', True)
+        self.active = self.get_parameter('active').value
 
         self.Ts = self.get_parameter('sample_time').value
         self.max_linear = self.get_parameter('max_linear_speed').value
@@ -124,6 +129,9 @@ class LqrController(Node):
             elif parameter.name == 'max_angular_speed':
                 self.max_angular = parameter.value
                 self.get_logger().info(f'max_angular_speed = {self.max_angular} rad/s')
+            elif parameter.name == 'active':
+                self.active = parameter.value
+                self.get_logger().info('LQR ACTIVE' if self.active else 'LQR switched OFF')
         return SetParametersResult(successful=True)
 
     # ------------------------------------------------------------------ inputs
@@ -150,6 +158,8 @@ class LqrController(Node):
 
     # ------------------------------------------------------------ control loop
     def control_step(self):
+        if not self.active:
+            return  # switched off (Step 8): another controller drives this robot
         if self.pose is None or self.goal is None:
             return  # nothing to do yet: the robot stays free for teleoperation
 

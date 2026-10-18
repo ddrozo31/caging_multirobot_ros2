@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 7
+# caging_multirobot_ros2: the project after Step 8
 
-This commit (tag `step-07`) is the project as it was at the end of
-**Step 7: soft V gripper and object closure**. The guides are their final version; the code in `src/` is the
+This commit (tag `step-08`) is the project as it was at the end of
+**Step 8: Leader-Follower controller**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -19,6 +19,7 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 - [Step 5 — Two Robots and the Objects](docs/steps/step_05_two_robots.md)
 - [Step 6 — Object Approach: Approach Poses and A* Planning](docs/steps/step_06_approach_astar.md)
 - [Step 7 — Soft Gripper and Object Closure (Caging)](docs/steps/step_07_gripper_caging.md)
+- [Step 8 — Leader-Follower Controller (Keeping the Object Caged)](docs/steps/step_08_leader_follower.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 

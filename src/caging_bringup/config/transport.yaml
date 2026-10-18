@@ -1,0 +1,7 @@
+# Step 8: after the closure, switch the follower to the Leader-Follower controller.
+# Loaded after approach.yaml and caging.yaml (these values win).
+/**/approach_manager:
+  ros__parameters:
+    start_leader_follower: true
+    transport_speed: 0.1           # leader LQR while carrying [m/s]
+    transport_angular_speed: 0.3   # [rad/s]

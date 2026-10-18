@@ -28,6 +28,7 @@ setup(
             'lqr_controller = caging_control.nodes.lqr_controller:main',
             'object_marker = caging_control.nodes.object_marker:main',
             'approach_manager = caging_control.nodes.approach_manager:main',
+            'leader_follower = caging_control.nodes.leader_follower:main',
         ],
     },
 )

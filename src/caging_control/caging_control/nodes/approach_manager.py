@@ -18,6 +18,9 @@ When the service /start_approach is called:
      (theta_O + grasp_offset: e.g. the box is taken by its corners)
      The object is CLOSED (caged) when both robots are at their goals, their
      distance is d* and the object center is between them -> /object_closed = true
+  7. (only if start_leader_follower = true, Step 8) switch the follower from its
+     LQR to the Leader-Follower controller, and slow the leader down to the
+     transport speed. From now on, moving the leader moves the whole formation.
 
 The robots move ONE AFTER THE OTHER, as in the paper, so a plan never has to
 deal with a moving robot.
@@ -103,6 +106,10 @@ class ApproachManager(Node):
             'closure_distance_tolerance': 0.01,  # |d - d*| [m]
             'closure_center_tolerance': 0.03,    # object center -> midpoint of the robots [m]
             'closure_timeout': 30.0,    # give up if the object is not closed after this [s]
+            # --- Transport (Step 8) ---
+            'start_leader_follower': False,  # true: after the closure, follower -> Leader-Follower
+            'transport_speed': 0.1,          # leader LQR limits while carrying [m/s]
+            'transport_angular_speed': 0.3,  # [rad/s]
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -124,9 +131,11 @@ class ApproachManager(Node):
         self.closed_pub = self.create_publisher(Bool, '/object_closed', latched)
         self.closed_pub.publish(Bool(data=False))
 
-        # Clients to change the speed limit of each LQR (a parameter of that node)
+        # Clients to change parameters of other nodes: each LQR and the Leader-Follower
         self.param_clients = {r: self.create_client(SetParameters, f'/{r}/lqr_controller/set_parameters')
                               for r in ROBOTS}
+        self.param_clients['leader_follower'] = self.create_client(
+            SetParameters, '/leader_follower/set_parameters')
 
         # --- Service and the loop that follows the waypoints (10 Hz) ---
         self.create_service(Trigger, '/start_approach', self.start_callback)
@@ -263,11 +272,21 @@ class ApproachManager(Node):
                     self.start_closure()
 
     # ------------------------------------------------------- closure (Step 7)
+    def set_remote_parameter(self, node, name, value):
+        """Set a parameter of another node (like `ros2 param set`), without waiting.
+
+        node: 'leader', 'follower' (their LQR) or 'leader_follower'.
+        """
+        if isinstance(value, bool):
+            parameter_value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=value)
+        else:
+            parameter_value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=float(value))
+        request = SetParameters.Request(parameters=[Parameter(name=name, value=parameter_value)])
+        self.param_clients[node].call_async(request)
+
     def set_lqr_speed(self, robot, speed):
-        """Change the parameter max_linear_speed of the LQR of `robot` (no waiting)."""
-        value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=float(speed))
-        request = SetParameters.Request(parameters=[Parameter(name='max_linear_speed', value=value)])
-        self.param_clients[robot].call_async(request)
+        """Change the parameter max_linear_speed of the LQR of `robot`."""
+        self.set_remote_parameter(robot, 'max_linear_speed', speed)
 
     def start_closure(self):
         """Both robots move at the same time, slowly, until they are d* apart."""
@@ -320,6 +339,10 @@ class ApproachManager(Node):
                 f'OBJECT CLOSED after {elapsed:.1f} s: d = {d:.3f} m (d* = {self.p["closing_distance"]}), '
                 f'object {center_error:.3f} m from the midpoint')
             self.closed_pub.publish(Bool(data=True))
+            if self.p['start_leader_follower']:
+                self.start_transport()
+                self.closing_goals = None
+                return
         elif elapsed > self.p['closure_timeout']:
             self.get_logger().warn(
                 f'NOT closed after {elapsed:.0f} s: d = {d:.3f} m, '
@@ -329,6 +352,17 @@ class ApproachManager(Node):
         for robot in ROBOTS:
             self.set_lqr_speed(robot, self.p['normal_speed'])
         self.closing_goals = None
+
+    def start_transport(self):
+        """Step 8: follower LQR off -> Leader-Follower on; leader slowed down."""
+        self.set_remote_parameter('follower', 'active', False)          # 1. follower LQR off
+        self.set_remote_parameter('leader_follower', 'active', True)    # 2. formation control on
+        self.set_lqr_speed('leader', self.p['transport_speed'])         # 3. leader carries slowly
+        self.set_remote_parameter('leader', 'max_angular_speed', self.p['transport_angular_speed'])
+        self.get_logger().info(
+            f"TRANSPORT mode: follower in Leader-Follower, leader limited to "
+            f"{self.p['transport_speed']} m/s, {self.p['transport_angular_speed']} rad/s. "
+            "Move the formation with goals for the leader (/leader/goal_pose).")
 
     # ------------------------------------------------------------ RViz
     def publish_path(self, start, cells, grid):

@@ -54,6 +54,10 @@ class ObjectMarker(Node):
         marker.ns = 'object'
         marker.id = 0
         marker.action = Marker.ADD
+        # frame_locked = True: RViz moves the marker with the TF frame "object" in EVERY
+        # frame. With False (the default) RViz places it once, when the message arrives
+        # (here once per second), so a carried object would jump every second (Step 8).
+        marker.frame_locked = True
 
         if self.object == 'box':
             marker.type = Marker.CUBE
