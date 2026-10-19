@@ -31,6 +31,7 @@ so turning near an obstacle is safe.
 
 Subscribes:
   /object/ground_truth/odom, /leader/ground_truth/odom, /follower/ground_truth/odom
+      (or /<name>/vicon/odom with pose_source = 'vicon', Step 11)
 Publishes:
   /leader/goal_pose, /follower/goal_pose   (geometry_msgs/PoseStamped)  waypoints for the LQR
   /leader/planned_path, /follower/planned_path  (nav_msgs/Path)         for RViz
@@ -112,16 +113,18 @@ class ApproachManager(Node):
             'start_leader_follower': False,  # true: after the closure, follower -> Leader-Follower
             'transport_speed': 0.1,          # leader LQR limits while carrying [m/s]
             'transport_angular_speed': 0.3,  # [rad/s]
+            # --- Step 11 ---
+            'pose_source': 'ground_truth',   # or 'vicon' (pose with measurement noise)
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         self.p = {name: self.get_parameter(name).value for name in defaults}
 
-        # --- Latest ground-truth poses ---
+        # --- Latest poses (ground truth, or Vicon with noise in Step 11) ---
         self.poses = {'object': None, 'leader': None, 'follower': None}
         for name in self.poses:
             self.create_subscription(
-                Odometry, f'/{name}/ground_truth/odom',
+                Odometry, f"/{name}/{self.p['pose_source']}/odom",
                 lambda msg, name=name: self.poses.__setitem__(name, pose_from_odometry(msg)), 10)
 
         # --- Publishers ---

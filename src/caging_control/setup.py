@@ -32,6 +32,7 @@ setup(
             'trajectory_tracker = caging_control.nodes.trajectory_tracker:main',
             'task_manager = caging_control.nodes.task_manager:main',
             'safety_supervisor = caging_control.nodes.safety_supervisor:main',
+            'vicon = caging_control.nodes.vicon:main',
             'plot_results = caging_control.tools.plot_results:main',
         ],
     },

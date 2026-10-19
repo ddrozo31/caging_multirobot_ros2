@@ -23,6 +23,8 @@ Run:
   ros2 launch caging_bringup two_robots.launch.py object:=pyramid
   ros2 launch caging_bringup two_robots.launch.py object:=none
   ros2 launch caging_bringup two_robots.launch.py object_yaw:=1.5708   # object rotated (Step 6)
+  ros2 launch caging_bringup two_robots.launch.py vicon_noise_xy:=0.002 vicon_noise_yaw:=0.005 seed:=1
+      # Step 11: the controllers see the poses through a virtual Vicon with noise
 """
 import os
 
@@ -51,6 +53,12 @@ def launch_setup(context):
     world = LaunchConfiguration('world').perform(context)
     object_yaw = LaunchConfiguration('object_yaw').perform(context)
     gripper = LaunchConfiguration('gripper').perform(context)
+    noise_xy = float(LaunchConfiguration('vicon_noise_xy').perform(context))
+    noise_yaw = float(LaunchConfiguration('vicon_noise_yaw').perform(context))
+    seed = int(LaunchConfiguration('seed').perform(context))
+
+    # Step 11: with noise, every controller reads the virtual Vicon instead of the ground truth
+    pose_source = 'vicon' if (noise_xy > 0 or noise_yaw > 0) else 'ground_truth'
 
     # --- 1. World: Gazebo + bridge + RViz ---
     actions = [IncludeLaunchDescription(
@@ -83,7 +91,7 @@ def launch_setup(context):
                 executable='lqr_controller',
                 output='screen',
                 parameters=[os.path.join(bringup_share, 'config', 'lqr.yaml'),
-                            {'use_sim_time': True}],
+                            {'use_sim_time': True, 'pose_source': pose_source}],
             ),
         ]))
 
@@ -109,6 +117,16 @@ def launch_setup(context):
             parameters=[{'object': object_name, 'use_sim_time': True}],
         ))
 
+    # --- 6. Step 11: virtual Vicon (ground truth + noise), only when noise is requested ---
+    if pose_source == 'vicon':
+        actions.append(Node(
+            package='caging_control',
+            executable='vicon',
+            output='screen',
+            parameters=[{'use_sim_time': True, 'noise_xy': noise_xy,
+                         'noise_yaw': noise_yaw, 'seed': seed}],
+        ))
+
     return actions
 
 
@@ -121,6 +139,11 @@ def generate_launch_description():
         DeclareLaunchArgument('gripper', default_value='false',
                               description='Mount the V-shaped soft grippers (Step 7)'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),
+        DeclareLaunchArgument('vicon_noise_xy', default_value='0.0',
+                              description='Step 11: Vicon noise, std of x and y [m] (0 = perfect poses)'),
+        DeclareLaunchArgument('vicon_noise_yaw', default_value='0.0',
+                              description='Step 11: Vicon noise, std of theta [rad]'),
+        DeclareLaunchArgument('seed', default_value='0', description='Step 11: random seed of the noise'),
         DeclareLaunchArgument(
             'world',
             default_value=os.path.join(

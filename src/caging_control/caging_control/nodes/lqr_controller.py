@@ -23,6 +23,7 @@ node: with one robot "ground_truth/odom" is /ground_truth/odom; in namespace /le
 
 Subscribes:
   ground_truth/odom  (nav_msgs/Odometry)        pose of the robot in "world"
+                     (vicon/odom with pose_source = 'vicon': pose with noise, Step 11)
   goal_pose          (geometry_msgs/PoseStamped) new goal, e.g. RViz "2D Goal Pose"
 Publishes:
   cmd_vel_nav  (geometry_msgs/Twist)            body twist (priority 10 in twist_mux,
@@ -81,6 +82,8 @@ class LqrController(Node):
         # Step 8: false = the node stops publishing (the follower is then driven by the
         # Leader-Follower controller). Can be changed while running.
         self.declare_parameter('active', True)
+        # Step 11: 'ground_truth' (perfect pose) or 'vicon' (pose with measurement noise)
+        self.declare_parameter('pose_source', 'ground_truth')
         self.active = self.get_parameter('active').value
 
         self.Ts = self.get_parameter('sample_time').value
@@ -107,7 +110,8 @@ class LqrController(Node):
                            self.get_parameter('goal_yaw').value))
 
         # --- Subscribers ---
-        self.create_subscription(Odometry, 'ground_truth/odom', self.pose_callback, 10)
+        pose_topic = self.get_parameter('pose_source').value + '/odom'   # ground_truth/odom or vicon/odom
+        self.create_subscription(Odometry, pose_topic, self.pose_callback, 10)
         self.create_subscription(PoseStamped, 'goal_pose', self.goal_callback, 10)
 
         # --- Publishers and the control timer (one tick every Ts) ---

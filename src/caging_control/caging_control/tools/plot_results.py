@@ -9,16 +9,29 @@ Output, for each CSV:  <name>.png with four plots
     (d) Fig. 15: d, alpha and theta_F error versus time
 and, with --table, one Markdown table of the mean errors of all the CSV files.
 
+Step 11:
+  - Repeated runs: files whose names differ only in the date (<date>_<time>_box_static_smooth.csv)
+    are ONE configuration. The table shows mean ± std over the runs (std of the per-run means).
+  - Object retention: for each run, the largest distance of the object from the midpoint of the
+    robots ("cage" column). The object is RETAINED if it never exceeds --cage-tolerance
+    (0.05 m, the same limit as safety_supervisor). Runs that were aborted write no CSV: count
+    them with the summary of run_experiments.sh.
+
 No ROS here: only csv, math and matplotlib.
 
 Run:
   ros2 run caging_control plot_results results/*.csv
   ros2 run caging_control plot_results results/*.csv --table --out docs/figures
+  ros2 run caging_control plot_results results/repeat/*.csv --table --no-plots    # Step 11
+  ros2 run caging_control plot_results results/repeat/*.csv --no-plots --runs-csv runs.csv
+      # one row per run (mean errors, max cage, retained): a small file to keep instead of all CSVs
 """
 import argparse
 import csv
 import math
 import os
+import re
+import statistics
 
 import matplotlib
 matplotlib.use('Agg')               # draw to files, no window needed
@@ -90,33 +103,70 @@ def plot_lap(data, title, path):
     plt.close(fig)
 
 
+def configuration(name):
+    """'20261019_083654_box_static_smooth' -> 'box_static_smooth' (remove the date and time)."""
+    return re.sub(r'^\d{8}_\d{6}_', '', name)
+
+
+def mean_and_std(values, decimals):
+    """'0.047' for one run, '0.047 ± 0.002' for several runs."""
+    mean = statistics.mean(values)
+    if len(values) == 1:
+        return f'{mean:.{decimals}f}'
+    return f'{mean:.{decimals}f} ± {statistics.stdev(values):.{decimals}f}'
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Plots and error table of trajectory laps (Step 10)')
+    parser = argparse.ArgumentParser(description='Plots and error table of trajectory laps (Steps 10-11)')
     parser.add_argument('csv', nargs='+', help='CSV files written by trajectory_tracker')
     parser.add_argument('--out', default=None, help='folder for the PNG files (default: next to each CSV)')
     parser.add_argument('--table', action='store_true', help='print a Markdown table of the mean errors')
+    parser.add_argument('--no-plots', action='store_true', help='only the table, no PNG files')
+    parser.add_argument('--runs-csv', default=None, help='write one summary row per run to this CSV file')
+    parser.add_argument('--cage-tolerance', type=float, default=0.05,
+                        help='object retained if its distance to the robots midpoint stays below this [m]')
     args = parser.parse_args()
 
-    rows = []
-    for path in args.csv:
+    # One entry per configuration: {configuration: [results of each run]}
+    groups = {}
+    for path in sorted(args.csv):
         data = read_csv(path)
         name = os.path.splitext(os.path.basename(path))[0]
-        out_dir = args.out or os.path.dirname(os.path.abspath(path))
-        os.makedirs(out_dir, exist_ok=True)
-        png = os.path.join(out_dir, name + '.png')
-        plot_lap(data, name, png)
-        print(f'written {png}')
-        means = {key: sum(data[key]) / len(data[key]) for key, *_ in ERRORS}
-        rows.append((name, means))
+        if not args.no_plots:
+            out_dir = args.out or os.path.dirname(os.path.abspath(path))
+            os.makedirs(out_dir, exist_ok=True)
+            png = os.path.join(out_dir, name + '.png')
+            plot_lap(data, name, png)
+            print(f'written {png}')
+        run = {key: sum(data[key]) / len(data[key]) for key, *_ in ERRORS}   # mean error of this lap
+        run['max_cage'] = max(data['cage'])                                  # worst cage of this lap
+        run['retained'] = int(run['max_cage'] < args.cage_tolerance)
+        run['file'] = name
+        groups.setdefault(configuration(name), []).append(run)
+
+    if args.runs_csv:
+        with open(args.runs_csv, 'w', newline='') as f:
+            writer = csv.writer(f)
+            keys = [key for key, *_ in ERRORS] + ['max_cage', 'retained']
+            writer.writerow(['configuration', 'file'] + keys)
+            for config, runs in groups.items():
+                for r in runs:
+                    writer.writerow([config, r['file']] + [f'{r[k]:.5f}' if k != 'retained' else r[k]
+                                                           for k in keys])
+        print(f'written {args.runs_csv}')
 
     if args.table:
         print()
-        print('| run | ' + ' | '.join(f'{label} [{unit}]' for _, label, unit, *_ in ERRORS) + ' |')
-        print('|---|' + '---|' * len(ERRORS))
-        for name, means in rows:
-            print(f'| {name} | ' + ' | '.join(f'{means[key]:.3f}' for key, *_ in ERRORS) + ' |')
-        print('| paper, box, exp. 1 | ' + ' | '.join(f'{e1:.2f}' for *_, e1, _ in ERRORS) + ' |')
-        print('| paper, box, exp. 2 | ' + ' | '.join(f'{e2:.2f}' for *_, e2 in ERRORS) + ' |')
+        print('| configuration | runs | ' + ' | '.join(f'{label} [{unit}]' for _, label, unit, *_ in ERRORS)
+              + ' | max cage [mm] | retained |')
+        print('|---|---|' + '---|' * len(ERRORS) + '---|---|')
+        for config, runs in groups.items():
+            errors = ' | '.join(mean_and_std([r[key] for r in runs], 3) for key, *_ in ERRORS)
+            worst_cage = max(r['max_cage'] for r in runs)
+            retained = sum(r['max_cage'] < args.cage_tolerance for r in runs)
+            print(f'| {config} | {len(runs)} | {errors} | {worst_cage * 1000:.1f} | {retained}/{len(runs)} |')
+        print('| paper, box, exp. 1 | 1? | ' + ' | '.join(f'{e1:.2f}' for *_, e1, _ in ERRORS) + ' | – | – |')
+        print('| paper, box, exp. 2 | 1? | ' + ' | '.join(f'{e2:.2f}' for *_, e2 in ERRORS) + ' | – | – |')
 
 
 if __name__ == '__main__':

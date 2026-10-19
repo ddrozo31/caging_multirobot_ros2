@@ -169,7 +169,7 @@ TASK STATE: ABORTED  (safety supervisor)
 ```
 
 > **Step 11** repeats these four box runs 5 times each with a noisy virtual Vicon and reports
-> mean ± std and object retention: see [step_11_repeatability.md](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docs/steps/step_11_repeatability.md).
+> mean ± std and object retention: see [step_11_repeatability.md](step_11_repeatability.md).
 
 ### Discussion
 

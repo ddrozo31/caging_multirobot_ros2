@@ -13,7 +13,11 @@ Run:
   ros2 topic echo /task_state
 
 Arguments: object (box), orientation (static | tangent | radial), reference (smooth | waypoints),
-           auto_start (false), results_dir (results), rviz, world.
+           auto_start (false), results_dir (results), rviz, world,
+           Step 11: vicon_noise_xy (0.0 m), vicon_noise_yaw (0.0 rad), seed (0).
+  ros2 launch caging_bringup task.launch.py auto_start:=true vicon_noise_xy:=0.002 vicon_noise_yaw:=0.005 seed:=3
+The noise arguments are declared here and read by the included launch files
+(two_robots.launch.py, caging.launch.py): a launch argument is visible to every file it includes.
 After the lap: ros2 run caging_control plot_results results/<file>.csv
 """
 import os
@@ -63,6 +67,11 @@ def generate_launch_description():
         DeclareLaunchArgument('auto_start', default_value='false', description='start the task by itself'),
         DeclareLaunchArgument('results_dir', default_value='results', description='folder for the CSV files'),
         DeclareLaunchArgument('rviz', default_value='true', description='Start RViz'),
+        DeclareLaunchArgument('vicon_noise_xy', default_value='0.0',
+                              description='Step 11: Vicon noise, std of x and y [m] (0 = perfect poses)'),
+        DeclareLaunchArgument('vicon_noise_yaw', default_value='0.0',
+                              description='Step 11: Vicon noise, std of theta [rad]'),
+        DeclareLaunchArgument('seed', default_value='0', description='Step 11: random seed of the noise'),
         DeclareLaunchArgument(
             'world',
             default_value=os.path.join(

@@ -65,6 +65,10 @@ def generate_launch_description():
                   os.path.join(bringup_share, 'config', 'caging.yaml')]
         # grasp of this object (overrides caging.yaml)
         params.append(OBJECTS[LaunchConfiguration('object').perform(context)])
+        # Step 11: same rule as two_robots.launch.py: with Vicon noise, read the vicon/odom poses
+        noisy = (float(LaunchConfiguration('vicon_noise_xy', default='0.0').perform(context)) > 0 or
+                 float(LaunchConfiguration('vicon_noise_yaw', default='0.0').perform(context)) > 0)
+        pose_source = {'pose_source': 'vicon' if noisy else 'ground_truth'}
         nodes = []
         if LaunchConfiguration('leader_follower').perform(context) == 'true':
             params.append(os.path.join(bringup_share, 'config', 'transport.yaml'))
@@ -74,13 +78,13 @@ def generate_launch_description():
                 executable='leader_follower',
                 output='screen',
                 parameters=[os.path.join(bringup_share, 'config', 'leader_follower.yaml'),
-                            {'use_sim_time': True}],
+                            {'use_sim_time': True}, pose_source],
             ))
         nodes.append(Node(
             package='caging_control',
             executable='approach_manager',
             output='screen',
-            parameters=params + [{'use_sim_time': True}],
+            parameters=params + [{'use_sim_time': True}, pose_source],
         ))
         return nodes
 

@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 10
+# caging_multirobot_ros2: the project after Step 11
 
-This commit (tag `step-10`) is the project as it was at the end of
-**Step 10: whole task, safety, logging and results**. The guides are their final version; the code in `src/` is the
+This commit (tag `step-11`) is the project as it was at the end of
+**Step 11: repeatability and object retention**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -22,6 +22,7 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 - [Step 8 — Leader-Follower Controller (Keeping the Object Caged)](docs/steps/step_08_leader_follower.md)
 - [Step 9 — Transporting the Object Along a Trajectory](docs/steps/step_09_trajectory.md)
 - [Step 10 — The Whole Task, Safety, Logging and Results](docs/steps/step_10_task_and_results.md)
+- [Step 11 — Repeatability and Object Retention](docs/steps/step_11_repeatability.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 

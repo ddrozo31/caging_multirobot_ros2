@@ -19,6 +19,7 @@ By hand:  ros2 param set /leader_follower active true
 
 Subscribes:
   /leader/ground_truth/odom, /follower/ground_truth/odom   (nav_msgs/Odometry)
+      (or /leader/vicon/odom, /follower/vicon/odom with pose_source = 'vicon', Step 11)
   /leader/mecanum_controller/cmd_vel                       (geometry_msgs/Twist)  u_L
 Publishes:
   /follower/cmd_vel_nav   (geometry_msgs/Twist)            u_F (twist_mux priority 10)
@@ -69,6 +70,7 @@ class LeaderFollower(Node):
             'max_angular_speed': 1.0,
             'leader_cmd_timeout': 0.5,
             'pose_timeout': 0.5,
+            'pose_source': 'ground_truth',   # Step 11: or 'vicon' (pose with measurement noise)
         }
         for name, value in defaults.items():
             self.declare_parameter(name, value)
@@ -82,7 +84,7 @@ class LeaderFollower(Node):
         self.u_leader_time = None
 
         for robot in self.poses:
-            self.create_subscription(Odometry, f'/{robot}/ground_truth/odom',
+            self.create_subscription(Odometry, f"/{robot}/{self.p['pose_source']}/odom",
                                      lambda msg, robot=robot: self.pose_callback(robot, msg), 10)
         self.create_subscription(Twist, '/leader/mecanum_controller/cmd_vel', self.leader_cmd_callback, 10)
 
