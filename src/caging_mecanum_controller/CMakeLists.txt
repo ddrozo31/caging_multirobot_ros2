@@ -17,6 +17,7 @@ find_package(realtime_tools REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_msgs REQUIRED)
+find_package(urdf REQUIRED)
 
 # --- Our controller is a SHARED library (a plugin), not an executable ---
 # The controller_manager loads it at run time using pluginlib.
@@ -38,6 +39,7 @@ ament_target_dependencies(${PROJECT_NAME}
   geometry_msgs
   nav_msgs
   tf2_msgs
+  urdf
 )
 
 # --- Register the plugin: tells pluginlib that our library contains
@@ -68,6 +70,7 @@ ament_export_dependencies(
   geometry_msgs
   nav_msgs
   tf2_msgs
+  urdf
 )
 
 ament_package()

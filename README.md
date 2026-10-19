@@ -1,7 +1,7 @@
-# caging_multirobot_ros2: the project after Step 11
+# caging_multirobot_ros2: the project after Step 12
 
-This commit (tag `step-11`) is the project as it was at the end of
-**Step 11: repeatability and object retention**. The guides are their final version; the code in `src/` is the
+This commit (tag `step-12`) is the project as it was at the end of
+**Step 12: single source of the robot dimensions**. The guides are their final version; the code in `src/` is the
 code of this step.
 
 The complete project (description, results, Docker image, how to cite) is at tag `v1.0`
@@ -23,6 +23,7 @@ and on the default branch: <https://github.com/ddrozo31/caging_multirobot_ros2>.
 - [Step 9 — Transporting the Object Along a Trajectory](docs/steps/step_09_trajectory.md)
 - [Step 10 — The Whole Task, Safety, Logging and Results](docs/steps/step_10_task_and_results.md)
 - [Step 11 — Repeatability and Object Retention](docs/steps/step_11_repeatability.md)
+- [Step 12 — Single Source of the Robot Dimensions](docs/steps/step_12_single_source.md)
 
 Reference: [docs/paper_reference.md](docs/paper_reference.md).
 

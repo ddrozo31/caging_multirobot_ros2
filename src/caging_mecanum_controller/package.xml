@@ -19,6 +19,7 @@
   <depend>geometry_msgs</depend>          <!-- Twist message -->
   <depend>nav_msgs</depend>               <!-- Odometry message (Step 3) -->
   <depend>tf2_msgs</depend>               <!-- TF message (Step 3) -->
+  <depend>urdf</depend>                   <!-- parse the robot description (Step 12) -->
 
   <export>
     <build_type>ament_cmake</build_type>

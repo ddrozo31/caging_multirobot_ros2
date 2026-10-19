@@ -353,7 +353,7 @@ Python equivalent: `self.declare_parameter('wheel_radius', 0.0325)`.
 > **Since Step 12** `wheel_radius`, `lx` and `ly` are no longer parameters: `on_configure` reads
 > them from the robot description (URDF), the only place where they are written. Only
 > `wheel_joints` (and the later Step 3–5 parameters) remain. See
-> [step_12_single_source.md](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docs/steps/step_12_single_source.md).
+> [step_12_single_source.md](step_12_single_source.md).
 
 ### 6.2 Interface configuration — what we want to borrow
 

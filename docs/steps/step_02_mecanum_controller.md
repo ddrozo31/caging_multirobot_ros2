@@ -221,7 +221,7 @@ publishing, the robot keeps moving: always send a zero twist to stop (see exerci
 6. `wheel_radius`, `lx` and `ly` are written twice (xacro and YAML). What could go wrong?
    Propose a way to keep a single source.
    *Solved in Step 12: the controller reads them from the URDF. Propose your own solution first,
-   then compare it with [step_12_single_source.md](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docs/steps/step_12_single_source.md).*
+   then compare it with [step_12_single_source.md](step_12_single_source.md).*
 7. Drive with the keyboard, then grab the joystick and press the enable button. What happens,
    and which `twist_mux` parameters explain it? What happens 0.5 s after you release it?
 8. Your joystick is different: use `ros2 topic echo /joy` to find its axes and buttons and

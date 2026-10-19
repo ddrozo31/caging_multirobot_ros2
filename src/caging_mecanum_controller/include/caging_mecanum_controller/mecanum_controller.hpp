@@ -55,8 +55,14 @@ public:
   controller_interface::return_type update(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  // ---- Parameters (from the controllers YAML file) ----
+  // Step 12: read r_w, l_x and l_y from the robot description (URDF).
+  // Returns false (and logs why) if the URDF is missing or the wheels do not match Fig. 6.
+  bool read_dimensions_from_urdf();
+
+  // ---- Parameter (from the controllers YAML file) ----
   std::vector<std::string> wheel_joints_;  // 4 joint names, order i = 0, 1, 2, 3 (Fig. 6)
+
+  // ---- Robot dimensions of Eq. 1: read from the URDF, NOT from the YAML (Step 12) ----
   double wheel_radius_ = 0.0;              // r_w
   double lx_ = 0.0;                        // l_x
   double ly_ = 0.0;                        // l_y

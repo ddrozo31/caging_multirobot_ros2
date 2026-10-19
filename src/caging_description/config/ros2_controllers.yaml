@@ -26,10 +26,9 @@
       - wheel_1_joint
       - wheel_2_joint
       - wheel_3_joint
-    # Same values as urdf/robot_core.xacro (see docs/paper_reference.md, section 8)
-    wheel_radius: 0.0325  # r_w [m]
-    lx: 0.080             # l_x [m]
-    ly: 0.0845            # l_y [m]
+    # r_w, l_x and l_y are NOT written here (Step 12): the controller reads them from the
+    # robot description, i.e. from urdf/robot_core.xacro (wheel_radius, lx, ly). Change the
+    # robot there, and Gazebo, RViz and Eq. 1 all follow.
     # Safety (Step 5): no new command for this long [s] -> the robot stops.
     # 0.5 s = 10 LQR cycles: one late message does not stop the robot, a dead node does.
     cmd_timeout: 0.5

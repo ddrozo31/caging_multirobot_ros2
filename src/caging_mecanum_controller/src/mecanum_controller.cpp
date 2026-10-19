@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "pluginlib/class_list_macros.hpp"
+#include "urdf/model.h"
 
 namespace caging_mecanum_controller
 {
@@ -16,14 +17,12 @@ namespace caging_mecanum_controller
 // ============================================================================
 // on_init: declare the parameters (name and default value).
 // Real values come from the controllers YAML file.
+// r_w, l_x and l_y are NOT parameters: they are read from the URDF (Step 12).
 // ============================================================================
 controller_interface::CallbackReturn MecanumController::on_init()
 {
   auto node = get_node();
   node->declare_parameter<std::vector<std::string>>("wheel_joints", std::vector<std::string>{});
-  node->declare_parameter<double>("wheel_radius", 0.0325);  // r_w [m]
-  node->declare_parameter<double>("lx", 0.080);             // l_x [m]
-  node->declare_parameter<double>("ly", 0.0845);            // l_y [m]
   // Safety (Step 5): stop the robot if no command arrives for this time [s]
   node->declare_parameter<double>("cmd_timeout", 0.5);
 
@@ -73,15 +72,19 @@ controller_interface::CallbackReturn MecanumController::on_configure(const rclcp
 
   // --- Read parameters ---
   wheel_joints_ = node->get_parameter("wheel_joints").as_string_array();
-  wheel_radius_ = node->get_parameter("wheel_radius").as_double();
-  lx_ = node->get_parameter("lx").as_double();
-  ly_ = node->get_parameter("ly").as_double();
 
   if (wheel_joints_.size() != 4) {
     RCLCPP_ERROR(node->get_logger(), "'wheel_joints' must have exactly 4 names (wheel 0, 1, 2, 3).");
     return controller_interface::CallbackReturn::ERROR;
   }
-  RCLCPP_INFO(node->get_logger(), "r_w = %.4f m, l_x = %.4f m, l_y = %.4f m", wheel_radius_, lx_, ly_);
+
+  // --- Robot dimensions (Step 12): from the robot description, the ONLY place they are written ---
+  if (!read_dimensions_from_urdf()) {
+    return controller_interface::CallbackReturn::ERROR;
+  }
+  RCLCPP_INFO(
+    node->get_logger(), "From the URDF: r_w = %.4f m, l_x = %.4f m, l_y = %.4f m",
+    wheel_radius_, lx_, ly_);
 
   // --- Subscriber: desired body twist on ~/cmd_vel  (=> /mecanum_controller/cmd_vel) ---
   // The callback only stores the message; the math happens in update().
@@ -158,6 +161,76 @@ controller_interface::CallbackReturn MecanumController::on_deactivate(const rclc
     (void)wheel.set_value(0.0);  // stop all wheels
   }
   return controller_interface::CallbackReturn::SUCCESS;
+}
+
+// ============================================================================
+// read_dimensions_from_urdf (Step 12): r_w, l_x and l_y of Eq. 1 from the URDF.
+//
+// The robot description (robot_core.xacro -> URDF) is the ONLY place where the
+// dimensions are written. The controller_manager gives every controller the same
+// URDF that robot_state_publisher publishes; get_robot_description() returns it.
+//
+//   l_x, l_y : position of each wheel joint in base_link (wheel joints are children
+//              of base_link in robot_core.xacro). Fig. 6 order and signs:
+//                wheel 0 (front-left)  at (+l_x, +l_y)    wheel 1 (front-right) at (+l_x, -l_y)
+//                wheel 2 (rear-left)   at (-l_x, +l_y)    wheel 3 (rear-right)  at (-l_x, -l_y)
+//              All four wheels must give the SAME l_x and l_y: this also checks the
+//              order of 'wheel_joints' in the YAML file.
+//   r_w      : radius of the collision cylinder of the wheel link.
+// ============================================================================
+bool MecanumController::read_dimensions_from_urdf()
+{
+  auto logger = get_node()->get_logger();
+
+  // 1) Parse the URDF text into a tree of links and joints
+  urdf::Model model;
+  if (get_robot_description().empty() || !model.initString(get_robot_description())) {
+    RCLCPP_ERROR(logger, "Cannot read the robot description (URDF).");
+    return false;
+  }
+
+  // 2) l_x and l_y from the position of each wheel joint
+  const std::array<double, 4> sign_x = {+1.0, +1.0, -1.0, -1.0};
+  const std::array<double, 4> sign_y = {+1.0, -1.0, +1.0, -1.0};
+  for (size_t i = 0; i < 4; ++i) {
+    auto joint = model.getJoint(wheel_joints_[i]);
+    if (!joint) {
+      RCLCPP_ERROR(logger, "Joint '%s' is not in the URDF.", wheel_joints_[i].c_str());
+      return false;
+    }
+    const auto & position = joint->parent_to_joint_origin_transform.position;   // [m]
+    const double lx_i = sign_x[i] * position.x;
+    const double ly_i = sign_y[i] * position.y;
+    if (i == 0) {
+      // wheel 0 must be front-left: x > 0 and y > 0
+      if (position.x <= 0.0 || position.y <= 0.0) {
+        RCLCPP_ERROR(
+          logger, "Wheel 0 ('%s') is at (%.4f, %.4f): wheel 0 must be front-left (x > 0, y > 0). "
+          "Check the order of 'wheel_joints' (Fig. 6).", wheel_joints_[0].c_str(), position.x, position.y);
+        return false;
+      }
+      lx_ = lx_i;   // wheel 0 gives the values ...
+      ly_ = ly_i;
+    } else if (std::abs(lx_i - lx_) > 1e-6 || std::abs(ly_i - ly_) > 1e-6) {
+      // ... and the other three must agree (same distances, signs of Fig. 6)
+      RCLCPP_ERROR(
+        logger, "Wheel %zu ('%s') is at (%.4f, %.4f): it does not match Fig. 6 "
+        "(wrong order in 'wheel_joints', or the wheels are not symmetric).",
+        i, wheel_joints_[i].c_str(), position.x, position.y);
+      return false;
+    }
+  }
+  // 3) r_w from the collision cylinder of the wheel link
+  auto wheel_link = model.getLink(model.getJoint(wheel_joints_[0])->child_link_name);
+  if (!wheel_link || !wheel_link->collision ||
+    wheel_link->collision->geometry->type != urdf::Geometry::CYLINDER)
+  {
+    RCLCPP_ERROR(logger, "The wheel link needs a <collision> with a <cylinder>.");
+    return false;
+  }
+  // The geometry is stored as a general "Geometry"; we know it is a cylinder: cast it.
+  wheel_radius_ = std::static_pointer_cast<urdf::Cylinder>(wheel_link->collision->geometry)->radius;
+  return true;
 }
 
 // ============================================================================
