@@ -1,7 +1,7 @@
 # Methodology: From a Paper to a Simulator, a Course and a Lecture
 
 A reusable working method for research and teaching projects in robotics, distilled from this
-project: the reproduction in ROS 2 / Gazebo of Tejada et al. (2025)
+project: the implementation in ROS 2 / Gazebo of Tejada et al. (2025)
 ([doi:10.1007/s10846-025-02263-y](https://doi.org/10.1007/s10846-025-02263-y)), its documentation
 as a 13-step course ([steps/](steps/)), a Docker image for students ([../docker/](../docker/)),
 and a lecture (in preparation).

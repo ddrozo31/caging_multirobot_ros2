@@ -1,13 +1,13 @@
 # caging_multirobot_ros2
 
 **Cooperative object transport with two omnidirectional robots: a step-by-step ROS 2 / Gazebo
-reproduction of a caging-based multi-robot controller.**
+implementation of a caging-based multi-robot controller.**
 
 Two mecanum (omnidirectional) robots with soft grippers approach an object, trap it between them
 (**caging**) and carry it along a trajectory, using an **LQR** pose controller per robot and a
-**Leader-Follower** formation controller. The project reproduces in simulation the work of
-Tejada et al. (2025) ([doi:10.1007/s10846-025-02263-y](https://doi.org/10.1007/s10846-025-02263-y)),
-with ROS 2 Jazzy, Gazebo Harmonic and `ros2_control`.
+**Leader-Follower** formation controller. The project implements in simulation the method of
+Tejada et al. (2025) ([doi:10.1007/s10846-025-02263-y](https://doi.org/10.1007/s10846-025-02263-y))
+and repeats its box experiments, with ROS 2 Jazzy, Gazebo Harmonic and `ros2_control`.
 
 It is teaching material for undergraduate and postgraduate students of robotics (Mechatronics
 Engineering, Universidad EIA), and an open simulation baseline for anyone working on multi-robot
@@ -128,7 +128,7 @@ Stack: ROS 2 Jazzy, Gazebo Harmonic, `ros2_control` + `gz_ros2_control`, Python 
 ## How to cite
 
 If you use this repository, please cite it (see [CITATION.cff](CITATION.cff); GitHub shows a
-"Cite this repository" button) and the paper it reproduces:
+"Cite this repository" button) and the paper it implements:
 
 - D. Rozo-Osorio, *caging_multirobot_ros2: cooperative object transport with two omnidirectional
   robots in ROS 2 and Gazebo*, Universidad EIA, 2026.

@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use this repository, please cite it as below, together with the paper it reproduces (see references)."
+message: "If you use this repository, please cite it as below, together with the paper it implements (see references)."
 type: software
 title: "caging_multirobot_ros2: cooperative object transport with two omnidirectional robots in ROS 2 and Gazebo"
 abstract: >-
-  A step-by-step ROS 2 Jazzy / Gazebo Harmonic reproduction of the caging-based
+  A step-by-step ROS 2 Jazzy / Gazebo Harmonic implementation of the caging-based
   multi-robot transport of Tejada et al. (2025): two mecanum robots with soft
   grippers approach, cage and carry an object with an LQR pose controller per
   robot and a Leader-Follower formation controller. Teaching material in 13
