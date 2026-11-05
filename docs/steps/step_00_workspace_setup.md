@@ -91,7 +91,7 @@ git checkout step-05 -- src          # (if you are stuck) take the code of Step 
 
 Each tag contains the guides up to that step, in their final version; to read ahead, open the
 guides on the default branch (tag `v1.0`).
-No Ubuntu 24.04 at hand? [`docker/`](https://github.com/ddrozo31/caging_multirobot_ros2/blob/v1.0/docker/README.md) runs the finished simulator in a
+No Ubuntu 24.04 at hand? [`docker/`](../../docker/README.md) runs the finished simulator in a
 container, with no ROS 2 installation.
 
 ### 4. Build the (still empty) workspace

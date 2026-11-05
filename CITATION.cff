@@ -1,0 +1,57 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below, together with the paper it reproduces (see references)."
+type: software
+title: "caging_multirobot_ros2: cooperative object transport with two omnidirectional robots in ROS 2 and Gazebo"
+abstract: >-
+  A step-by-step ROS 2 Jazzy / Gazebo Harmonic reproduction of the caging-based
+  multi-robot transport of Tejada et al. (2025): two mecanum robots with soft
+  grippers approach, cage and carry an object with an LQR pose controller per
+  robot and a Leader-Follower formation controller. Teaching material in 13
+  steps (one tag per step) and a Docker image for students.
+authors:
+  - family-names: Rozo-Osorio
+    given-names: David
+    email: david.rozo31@eia.edu.co
+    affiliation: "Universidad EIA, Envigado, Colombia"
+repository-code: "https://github.com/ddrozo31/caging_multirobot_ros2"
+url: "https://github.com/ddrozo31/caging_multirobot_ros2"
+license:
+  - Apache-2.0
+  - CC-BY-4.0
+version: "1.0"
+date-released: "2026-11-04"
+keywords:
+  - ROS 2
+  - Gazebo
+  - ros2_control
+  - multi-robot systems
+  - caging
+  - mecanum robots
+  - LQR
+  - leader-follower
+  - robotics education
+references:
+  - type: article
+    title: "Enhancing Object Manipulation and Transportation in Multi-Robot Systems with Soft Gripper Integration and Caging-Based Control"
+    authors:
+      - family-names: Tejada
+        given-names: J. C.
+      - family-names: Toro-Ossaba
+        given-names: A.
+      - family-names: López-Quintero
+        given-names: M. A.
+      - family-names: Rozo-Osorio
+        given-names: D.
+      - family-names: López-González
+        given-names: A.
+      - family-names: Hernández-Martínez
+        given-names: E. G.
+      - family-names: Góngora
+        given-names: M.
+      - family-names: Bonet Cruz
+        given-names: I.
+    journal: "Journal of Intelligent & Robotic Systems"
+    volume: 111
+    year: 2025
+    doi: "10.1007/s10846-025-02263-y"
+    notes: "Article 76"
