@@ -1,0 +1,133 @@
+# ==================================================================================================
+# Caging simulator with Docker Compose. Run from the repository root:
+#
+#   docker compose -f docker/compose.yaml build             # build the image (about 10-20 min)
+#   docker compose -f docker/compose.yaml run --rm test     # unit tests of caging_control
+#   mkdir -p results/docker && docker compose -f docker/compose.yaml run --rm experiments
+#   docker compose -f docker/compose.yaml run --rm sim      # shell with the simulator of the image
+#   docker compose -f docker/compose.yaml run --rm dev      # shell with your src/ mounted (development)
+#   docker compose -f docker/compose.yaml run --rm gui      # shell that can open Gazebo and RViz (Linux, X11)
+#   docker compose -f docker/compose.yaml run --rm gui-wsl  # the same on Windows (WSL2 + WSLg)
+#   docker compose -f docker/compose.yaml run --rm gui-nvidia  # gui on an NVIDIA GPU (Linux, toolkit)
+#
+# Services:
+#   test        : runs the unit tests and exits (headless check of the image)
+#   experiments : the four box runs of Table 2, headless (Step 10 script), then the table
+#   sim  : the simulator as built in the image (tag v1.0), for students
+#   dev  : the host's src/ mounted, built inside the container into a separate volume
+#   gui  : like sim, plus the host's X11 display and GPU (/dev/dri), for the lecture demos
+#   gui-wsl : like gui, for Windows: WSLg's display and the GPU through Direct3D 12
+#   gui-nvidia : gui with the NVIDIA proprietary driver (NVIDIA Container Toolkit on the host)
+# Before any service, once per terminal on the host:  source docker/env.sh  (see README)
+# ==================================================================================================
+name: caging
+
+x-common: &common
+  image: caging_multirobot_ros2:jazzy
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    args:
+      USER_UID: ${HOST_UID:-1000}
+      USER_GID: ${HOST_GID:-1000}
+  network_mode: host          # ROS 2 discovery between the container and the host (Linux, WSL2)
+  ipc: host                   # shared memory transport of the DDS middleware
+  environment:
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+    ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}   # only this computer
+
+services:
+  test:
+    <<: *common
+    command: >
+      bash -c "colcon test --packages-select caging_control --event-handlers console_direct-
+      && colcon test-result --verbose"
+
+  experiments:                # Table 2 runs, headless; CSV files and logs in results/docker/ of the host
+    <<: *common
+    volumes:
+      - ../results/docker:/home/ros/ros2_ws/results
+    command: >
+      bash -c "bash src/caging_bringup/scripts/run_experiments.sh
+      && ros2 run caging_control plot_results results/*.csv --table"
+
+  sim:
+    <<: *common
+    stdin_open: true
+    tty: true
+
+  dev:
+    <<: *common
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../src:/home/ros/ros2_ws/src            # edit on the host, build in the container
+      - dev_build:/home/ros/ros2_ws/build
+      - dev_install:/home/ros/ros2_ws/install
+      - dev_log:/home/ros/ros2_ws/log
+
+  gui:                        # Linux with X11 (Windows/WSLg: gui-wsl below)
+    <<: *common
+    stdin_open: true
+    tty: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+      DISPLAY: ${DISPLAY:-:0}                 # the host's screen
+      XAUTHORITY: /home/ros/.Xauthority       # permission to draw on it (same user as on the host)
+      QT_X11_NO_MITSHM: 1                     # RViz/Gazebo (Qt) without X11 shared memory
+      SDL_JOYSTICK_DISABLE_UDEV: 1            # joy_node (SDL) scans /dev/input itself (no udev here)
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw      # the X11 socket
+      - ${XAUTHORITY:-/dev/null}:/home/ros/.Xauthority:ro
+      - /dev/input:/dev/input                 # joysticks (teleop.launch.py), also plugged in later
+    devices:
+      - /dev/dri:/dev/dri                     # the GPU, for OpenGL in Gazebo and RViz (Intel, AMD)
+    device_cgroup_rules:
+      - 'c 13:* rmw'                          # allow the input devices (major number 13) mounted above
+    group_add:                                # host groups that own /dev/dri and /dev/input
+      - ${VIDEO_GID:-44}
+      - ${RENDER_GID:-992}
+      - ${INPUT_GID:-995}
+
+  gui-nvidia:                 # Linux with an NVIDIA GPU; needs the NVIDIA Container Toolkit (README)
+    extends:
+      service: gui            # everything of gui (X11, /dev/dri, joystick), plus:
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all          # "graphics" is needed for OpenGL (Gazebo, RViz)
+      __NV_PRIME_RENDER_OFFLOAD: 1             # laptops with two GPUs: draw on the NVIDIA one
+      __GLX_VENDOR_LIBRARY_NAME: nvidia        # OpenGL from the NVIDIA driver, not Mesa
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  gui-wsl:                    # Windows: run from the WSL2 (Ubuntu) terminal, after source docker/env.sh
+    <<: *common
+    stdin_open: true
+    tty: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+      DISPLAY: ${DISPLAY:-:0}                   # WSLg's X server (XWayland), no XAUTHORITY needed
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: /mnt/wslg/runtime-dir
+      PULSE_SERVER: /mnt/wslg/PulseServer
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib         # Windows' GPU libraries (libd3d12, libdxcore)
+      GALLIUM_DRIVER: ${GALLIUM_DRIVER:-d3d12}  # d3d12 = Windows GPU; llvmpipe = CPU, if the GPU path fails
+      QT_X11_NO_MITSHM: 1
+    volumes:
+      - ${WSLG_DIR:-/mnt/wslg}:/mnt/wslg
+      - ${WSLG_DIR:-/mnt/wslg}/.X11-unix:/tmp/.X11-unix
+      - /usr/lib/wsl:/usr/lib/wsl:ro
+    devices:
+      - /dev/dxg:/dev/dxg                       # WSL2's GPU device (any vendor)
+
+volumes:
+  dev_build:
+  dev_install:
+  dev_log:

@@ -1,0 +1,3 @@
+# Line endings of the container files: always LF, also in a clone made on Windows,
+# otherwise bash in the container fails on "\r".
+* text=auto eol=lf

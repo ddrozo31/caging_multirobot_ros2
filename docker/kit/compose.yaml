@@ -1,0 +1,104 @@
+# ==================================================================================================
+# Caging simulator: student kit. Same services as docker/compose.yaml of the repository,
+# but the image is downloaded from the GitHub container registry instead of built.
+# KEEP IN SYNC with docker/compose.yaml (everything except `build` and the `dev` service).
+#
+# In the kit folder, once per terminal:   source env.sh
+#   docker compose pull                    # download the image (about 3 GB, once)
+#   docker compose run --rm test           # unit tests of caging_control
+#   docker compose run --rm experiments    # the four box runs of Table 2, headless
+#   docker compose run --rm gui            # Gazebo and RViz, Linux (Intel/AMD GPU)
+#   docker compose run --rm gui-nvidia     # Gazebo and RViz, Linux with an NVIDIA GPU
+#   docker compose run --rm gui-wsl        # Gazebo and RViz, Windows (WSL2 + WSLg)
+#   docker compose run --rm sim            # shell without graphics
+# ==================================================================================================
+name: caging
+
+x-common: &common
+  image: ${CAGING_IMAGE:-ghcr.io/ddrozo31/caging_multirobot_ros2:jazzy}
+  network_mode: host          # ROS 2 discovery between containers and the host
+  ipc: host                   # shared memory transport of the DDS middleware
+  environment:
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+    ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}   # only this computer
+
+services:
+  test:
+    <<: *common
+    command: >
+      bash -c "colcon test --packages-select caging_control --event-handlers console_direct-
+      && colcon test-result --verbose"
+
+  experiments:                # CSV files, plots and logs in results/ of the kit folder
+    <<: *common
+    volumes:
+      - ./results:/home/ros/ros2_ws/results
+    command: >
+      bash -c "bash src/caging_bringup/scripts/run_experiments.sh
+      && ros2 run caging_control plot_results results/*.csv --table"
+
+  sim:
+    <<: *common
+    stdin_open: true
+    tty: true
+
+  gui:                        # Linux with X11 (or Wayland + XWayland), Intel or AMD GPU
+    <<: *common
+    stdin_open: true
+    tty: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: /home/ros/.Xauthority
+      QT_X11_NO_MITSHM: 1
+      SDL_JOYSTICK_DISABLE_UDEV: 1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-/dev/null}:/home/ros/.Xauthority:ro
+      - /dev/input:/dev/input
+    devices:
+      - /dev/dri:/dev/dri
+    device_cgroup_rules:
+      - 'c 13:* rmw'
+    group_add:
+      - ${VIDEO_GID:-44}
+      - ${RENDER_GID:-992}
+      - ${INPUT_GID:-995}
+
+  gui-nvidia:                 # Linux with an NVIDIA GPU and the NVIDIA Container Toolkit
+    extends:
+      service: gui
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      __NV_PRIME_RENDER_OFFLOAD: 1
+      __GLX_VENDOR_LIBRARY_NAME: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  gui-wsl:                    # Windows: WSL2 (Ubuntu) terminal
+    <<: *common
+    stdin_open: true
+    tty: true
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+      DISPLAY: ${DISPLAY:-:0}
+      WAYLAND_DISPLAY: ${WAYLAND_DISPLAY:-wayland-0}
+      XDG_RUNTIME_DIR: /mnt/wslg/runtime-dir
+      PULSE_SERVER: /mnt/wslg/PulseServer
+      LD_LIBRARY_PATH: /usr/lib/wsl/lib
+      GALLIUM_DRIVER: ${GALLIUM_DRIVER:-d3d12}
+      QT_X11_NO_MITSHM: 1
+    volumes:
+      - ${WSLG_DIR:-/mnt/wslg}:/mnt/wslg
+      - ${WSLG_DIR:-/mnt/wslg}/.X11-unix:/tmp/.X11-unix
+      - /usr/lib/wsl:/usr/lib/wsl:ro
+    devices:
+      - /dev/dxg:/dev/dxg

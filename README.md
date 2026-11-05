@@ -1,6 +1,6 @@
-# caging_multirobot_ros2: the project after Step 12
+# caging_multirobot_ros2: Step 12 and the simulator in a container
 
-This commit (tag `step-12`) is the project as it was at the end of
+This commit (tag `docker`) adds [`docker/`](docker/README.md) to the project as it was at the end of
 **Step 12: single source of the robot dimensions**. The guides are their final version; the code in `src/` is the
 code of this step.
 

@@ -1,0 +1,6 @@
+# Build context of docker/Dockerfile: only src/ and docker/ are needed
+*
+!src/
+!docker/
+src/**/__pycache__/
+src/**/.pytest_cache/
