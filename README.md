@@ -13,7 +13,9 @@ It is teaching material for undergraduate and postgraduate students of robotics 
 Engineering, Universidad EIA), and an open simulation baseline for anyone working on multi-robot
 caging.
 
-![Experiment 2 with the paper's waypoints](docs/figures/step10_box_tangent_waypoints.png)
+![The robot (mecanum base and V gripper), two robots approaching a box, and the box caged between them](docs/figures/caging_overview.png)
+
+*Rendered in Gazebo from the simulator's models (posed scenes). Leader red, follower blue.*
 
 ## Two ways in
 
@@ -51,21 +53,21 @@ version.
 
 ## Course index
 
-| Step | Topic | Paper reference | Guide |
-|------|-------|-----------------|-------|
-| 0 | Workspace setup | – | [step_00_workspace_setup.md](docs/steps/step_00_workspace_setup.md) |
-| 1 | Mecanum robot model in Gazebo Harmonic | §2.1.1 | [step_01_robot_model.md](docs/steps/step_01_robot_model.md) |
-| 2 | Mecanum kinematics: custom ros2_control controller | Eq. 1–4 | [step_02_mecanum_controller.md](docs/steps/step_02_mecanum_controller.md) |
-| 3 | Pose feedback: ground truth ("virtual Vicon") and wheel odometry | §2.5, Eq. 3, 5 | [step_03_pose_feedback.md](docs/steps/step_03_pose_feedback.md) |
-| 4 | LQR pose controller for one robot | Eq. 5–12 | [step_04_lqr_controller.md](docs/steps/step_04_lqr_controller.md) |
-| 5 | Two robots and the objects (namespaces) | §2.5, Fig. 9–10 | [step_05_two_robots.md](docs/steps/step_05_two_robots.md) |
-| 6 | Object approach: approach poses and A* | §2.3, Eq. 13 | [step_06_approach_astar.md](docs/steps/step_06_approach_astar.md) |
-| 7 | Soft gripper and object closure (caging) | §2.1.2, Table 1 | [step_07_gripper_caging.md](docs/steps/step_07_gripper_caging.md) |
-| 8 | Leader-Follower controller (keeping the object caged) | §2.4, Eq. 14–25 | [step_08_leader_follower.md](docs/steps/step_08_leader_follower.md) |
-| 9 | Transporting the object along a trajectory | §2.4.2, §2.5, Eq. 26–27 | [step_09_trajectory.md](docs/steps/step_09_trajectory.md) |
-| 10 | Full task, safety, logging and results vs. Table 2 | §2.1, §3 | [step_10_task_and_results.md](docs/steps/step_10_task_and_results.md) |
-| 11 | Repeatability (noisy virtual Vicon, 5 runs) and object retention | §3 | [step_11_repeatability.md](docs/steps/step_11_repeatability.md) |
-| 12 | Single source of the robot dimensions (controller reads the URDF) | Eq. 1 | [step_12_single_source.md](docs/steps/step_12_single_source.md) |
+| Step | Topic | Guide |
+|------|-------|-------|
+| 0 | Workspace setup | [step_00_workspace_setup.md](docs/steps/step_00_workspace_setup.md) |
+| 1 | Mecanum robot model in Gazebo Harmonic | [step_01_robot_model.md](docs/steps/step_01_robot_model.md) |
+| 2 | Mecanum kinematics: custom ros2_control controller | [step_02_mecanum_controller.md](docs/steps/step_02_mecanum_controller.md) |
+| 3 | Pose feedback: ground truth ("virtual Vicon") and wheel odometry | [step_03_pose_feedback.md](docs/steps/step_03_pose_feedback.md) |
+| 4 | LQR pose controller for one robot | [step_04_lqr_controller.md](docs/steps/step_04_lqr_controller.md) |
+| 5 | Two robots and the objects (namespaces) | [step_05_two_robots.md](docs/steps/step_05_two_robots.md) |
+| 6 | Object approach: approach poses and A* | [step_06_approach_astar.md](docs/steps/step_06_approach_astar.md) |
+| 7 | Soft gripper and object closure (caging) | [step_07_gripper_caging.md](docs/steps/step_07_gripper_caging.md) |
+| 8 | Leader-Follower controller (keeping the object caged) | [step_08_leader_follower.md](docs/steps/step_08_leader_follower.md) |
+| 9 | Transporting the object along a trajectory | [step_09_trajectory.md](docs/steps/step_09_trajectory.md) |
+| 10 | Full task, safety, logging and results vs. Table 2 | [step_10_task_and_results.md](docs/steps/step_10_task_and_results.md) |
+| 11 | Repeatability (noisy virtual Vicon, 5 runs) and object retention | [step_11_repeatability.md](docs/steps/step_11_repeatability.md) |
+| 12 | Single source of the robot dimensions (controller reads the URDF) | [step_12_single_source.md](docs/steps/step_12_single_source.md) |
 
 Supporting material:
 
@@ -91,6 +93,12 @@ figures and discussion in [Step 10](docs/steps/step_10_task_and_results.md)):
 | Paper, experiment 2 (orientation tangent to the circle) | 0.13 | 0.15 | 0.01 | 0.09 |
 | This simulation, paper's waypoints | 0.105 | 0.069 | 0.003 | 0.003 |
 | This simulation, smooth reference | 0.046 | 0.045 | 0.001 | 0.000 |
+
+![Experiment 2 with the paper's waypoints: paths, object position, leader orientation and Leader-Follower state](docs/figures/step10_box_tangent_waypoints.png)
+
+*Experiment 2 with the paper's waypoints: the two robots carry the box around a circle of radius
+1 m, the leader's orientation tangent to it. (a) paths, (b) object position, (c) leader
+orientation, (d) Leader-Follower state; panels as in Figs. 12–15 of the paper.*
 
 **Repeatability and retention ([Step 11](docs/steps/step_11_repeatability.md)).** With a noisy
 virtual Vicon (σ = 2 mm, 0.3°) and 5 runs per configuration, the results change by at most 2 mm
